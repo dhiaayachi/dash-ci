@@ -1,4 +1,5 @@
-﻿namespace DashCI.Resources.Tfs {
+﻿/// <reference path="../../models/models.ts" />
+namespace DashCI.Resources.Tfs {
     export interface ITfsObject extends ng.resource.IResource<ITfsObject> {
 
     }
@@ -42,6 +43,12 @@
     export interface IRunQueryResult extends ng.resource.IResource<IRunQueryResult> {
         workItems: IWorkItem[]
     }
+
+    export interface IWorkItemsResult extends ng.resource.IResource<IWorkItemsResult> {
+        count: number;
+        value: IWorkItem[];
+    }
+
     export interface IProject {
         id: string;
         name: string;
@@ -62,6 +69,14 @@
     export interface IWorkItem {
         id: string;
         url: string;
+        fields: {
+            'System.Id': number;
+            'System.WorkItemType': string;
+            'System.State': string;
+            'System.Title': string;
+            'System.AssignedTo': string;
+            'System.IterationPath': string;
+        },
     }
     export interface IBuild {
         id: string;
@@ -125,4 +140,22 @@
             status: string;
         }[];
     }
+
+
+
+    export enum TfsColorBy {
+        randomColorByPath = 1,
+        colorByWorkItemType = 2,
+    }
+
+    DashCI.app.constant("tfsColorBy", <DashCI.Models.IEnumDescription<TfsColorBy>[]>[
+        {
+            value: TfsColorBy.colorByWorkItemType,
+            desc: "WorkItem Type"
+        },
+        {
+            value: TfsColorBy.randomColorByPath,
+            desc: "Random Color By Path"
+        },
+    ]);
 }

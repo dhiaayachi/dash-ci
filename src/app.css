@@ -51,6 +51,9 @@ md-nav-bar:hover{
   bottom: 0;
   left: 0;
 }
+.cast .grid  {
+    top: 0px
+}
 .wg-preview-row {
     border-top: 1px dotted rgba(103, 103, 103, 0.40);
     border-bottom: 1px dotted rgba(103, 103, 103, 0.4);
@@ -66,6 +69,14 @@ md-nav-bar:hover{
     top: 0px;
     z-index: 30;
 }
+
+.grid .duplicate-widget {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    z-index: 30;
+}
+
 
 .grid .configure-widget {
     position: absolute;

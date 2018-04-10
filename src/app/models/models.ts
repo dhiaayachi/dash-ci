@@ -37,6 +37,7 @@ namespace DashCI.Models {
 
     export interface IOptions {
         columns: number;
+        cycle?: number;
         rows: number;
 
         tfs: {
@@ -58,6 +59,7 @@ namespace DashCI.Models {
             baseUrl: string;
             basicAuth: string;
             jsonCountToken: string;
+            jsonListToken: string;
         }[],
 
         circleci: {

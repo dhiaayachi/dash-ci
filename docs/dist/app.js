@@ -7,7 +7,7 @@ var DashCI;
         "ngResource",
         "angularCSS"
     ]);
-    var Config = (function () {
+    var Config = /** @class */ (function () {
         function Config() {
         }
         // suppress iOS' rubber band effect 
@@ -31,7 +31,7 @@ var DashCI;
             $mdThemingProvider.theme('default')
                 .dark()
                 .accentPalette('orange');
-            //$resourceProvider.defaults.stripTrailingSlashes = true;
+            $resourceProvider.defaults.stripTrailingSlashes = false;
         }]);
     DashCI.app.run(["$rootScope", function ($rootScope) {
             angular.element(window).on("resize", function () {
@@ -51,7 +51,7 @@ var DashCI;
     }
     DashCI.randomNess = randomNess;
     DashCI.DEBUG = false;
-    var EnumEx = (function () {
+    var EnumEx = /** @class */ (function () {
         function EnumEx() {
         }
         EnumEx.getNamesAndValues = function (e) {
@@ -71,45 +71,46 @@ var DashCI;
     DashCI.EnumEx = EnumEx;
 })(DashCI || (DashCI = {}));
 /// <reference path="../app.ts" />
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Core;
     (function (Core) {
-        var AddWidgetController = (function () {
+        var AddWidgetController = /** @class */ (function () {
             function AddWidgetController($mdDialog, widgets, categories) {
                 this.$mdDialog = $mdDialog;
                 this.widgets = widgets;
                 this.categories = categories;
             }
+            AddWidgetController.prototype.$onInit = function () { };
             AddWidgetController.prototype.cancel = function () {
                 this.$mdDialog.cancel();
             };
             AddWidgetController.prototype.select = function (type) {
                 this.$mdDialog.hide(type);
             };
+            AddWidgetController.$inject = ["$mdDialog", "widgets", "widgetcategories"];
             return AddWidgetController;
         }());
-        AddWidgetController.$inject = ["$mdDialog", "widgets", "widgetcategories"];
         Core.AddWidgetController = AddWidgetController;
     })(Core = DashCI.Core || (DashCI.Core = {}));
 })(DashCI || (DashCI = {}));
 /// <reference path="../app.ts" />
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Core;
     (function (Core) {
-        var GlobalConfigController = (function () {
-            function GlobalConfigController($timeout, $mdDialog, $scope, $rootscope, vm) {
+        var GlobalConfigController = /** @class */ (function () {
+            function GlobalConfigController($timeout, $mdDialog, $scope, $rootscope, vm, intervals) {
                 var _this = this;
                 this.$timeout = $timeout;
                 this.$mdDialog = $mdDialog;
                 this.$rootscope = $rootscope;
                 this.vm = vm;
+                this.intervals = intervals;
                 this.pageCount = this.vm.pages.length;
                 $scope.$watch(function () { return _this.pageCount; }, function () { return _this.updatePages(); });
             }
+            GlobalConfigController.prototype.$onInit = function () { };
             GlobalConfigController.prototype.ok = function () {
                 this.$mdDialog.hide();
             };
@@ -182,43 +183,42 @@ var DashCI;
                 this.$timeout(function () { return window.URL.revokeObjectURL(url); }, 1000);
                 alert("Your configuration was exported. Take note of your private keys, they are not saved to the exported file.");
             };
+            GlobalConfigController.$inject = ["$timeout", "$mdDialog", "$scope", "$rootScope", "config", "longIntervals"];
             return GlobalConfigController;
         }());
-        GlobalConfigController.$inject = ["$timeout", "$mdDialog", "$scope", "$rootScope", "config"];
         Core.GlobalConfigController = GlobalConfigController;
     })(Core = DashCI.Core || (DashCI.Core = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
-    var GoogleCastReceiver = (function () {
+    var GoogleCastReceiver = /** @class */ (function () {
         function GoogleCastReceiver() {
             var _this = this;
             this.namespace = 'urn:x-cast:almasistemas.dashci';
             this.script = '//www.gstatic.com/cast/sdk/libs/receiver/2.0.0/cast_receiver.js';
             var el = document.createElement('script');
-            document.body.appendChild(el);
             el.onload = function () {
-                setTimeout(function () { return _this.initializeCastApi(); }, 1000);
+                setTimeout(function () { return _this.initializeCastApi(); }, 100);
             };
             el.type = "text/javascript";
             el.src = this.script;
+            document.body.appendChild(el);
         }
         GoogleCastReceiver.prototype.initializeCastApi = function () {
             var _this = this;
             GoogleCastReceiver.Cast = window.cast;
             GoogleCastReceiver.Cast.receiver.logger.setLevelValue(0);
             this.manager = GoogleCastReceiver.Cast.receiver.CastReceiverManager.getInstance();
-            DashCI.DEBUG && console.log('Starting Receiver Manager');
+            this.log('Starting Receiver Manager');
             this.manager.onReady = function (event) {
-                DashCI.DEBUG && console.log('Received Ready event: ' + JSON.stringify(event.data));
+                _this.log('Received Ready event: ' + JSON.stringify(event.data));
                 _this.manager.setApplicationState('chromecast-dashboard is ready...');
             };
             this.manager.onSenderConnected = function (event) {
-                DashCI.DEBUG && console.log('Received Sender Connected event: ' + event.senderId);
+                _this.log('Received Sender Connected event: ' + event.senderId);
             };
             this.manager.onSenderDisconnected = function (event) {
-                DashCI.DEBUG && console.log('Received Sender Disconnected event: ' + event.senderId);
+                _this.log('Received Sender Disconnected event: ' + event.senderId);
                 if (_this.manager.getSenders().length == 0 &&
                     event.reason == GoogleCastReceiver.Cast.receiver.system.DisconnectReason.REQUESTED_BY_SENDER) {
                     window.close();
@@ -229,22 +229,38 @@ var DashCI;
             this.messageBus.onMessage = function (event) { return _this.receiveMessage(event); };
             // Initialize the CastReceiverManager with an application status message.
             this.manager.start({ statusText: 'Application is starting' });
-            DashCI.DEBUG && console.log('Receiver Manager started');
+            this.log('Receiver Manager started');
         };
         GoogleCastReceiver.prototype.receiveMessage = function (event) {
-            DashCI.DEBUG && console.log('Message [' + event.senderId + ']: ' + event.data);
-            if (event.data && this.receiveOptions)
-                this.receiveOptions(event.data);
+            this.log('Message [' + event.senderId + ']: ' + event.data);
+            if (typeof (event.data) == "object")
+                this.log(JSON.stringify(event.data));
+            try {
+                if (event.data && this.receiveOptions) {
+                    var opt = event.data;
+                    this.receiveOptions(opt);
+                }
+                else
+                    $("#debug").show().append("<p>Error receiving cast</p>");
+            }
+            catch (err) {
+                var ex = err;
+                this.log(ex.message);
+            }
         };
+        GoogleCastReceiver.prototype.log = function (txt) {
+            DashCI.DEBUG && console.log(txt);
+            DashCI.DEBUG && $("#debug").append("<p>" + txt + "</p>");
+            DashCI.DEBUG && $("#debug").show();
+        };
+        GoogleCastReceiver.Cast = null;
         return GoogleCastReceiver;
     }());
-    GoogleCastReceiver.Cast = null;
     DashCI.GoogleCastReceiver = GoogleCastReceiver;
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
-    var GoogleCastSender = (function () {
+    var GoogleCastSender = /** @class */ (function () {
         function GoogleCastSender() {
             /**
             * Call initialization for Cast
@@ -256,12 +272,12 @@ var DashCI;
             this.session = null;
             this.invalidOs = true;
             var el = document.createElement('script');
-            document.body.appendChild(el);
             el.onload = function () {
                 setTimeout(function () { return _this.initializeCastApi(); }, 1000);
             };
             el.type = "text/javascript";
             el.src = this.script;
+            document.body.appendChild(el);
         }
         /**
          * initialization
@@ -368,25 +384,26 @@ var DashCI;
                 }, function (m) { return _this.onError(m); });
             }
         };
+        GoogleCastSender.Cast = null;
         return GoogleCastSender;
     }());
-    GoogleCastSender.Cast = null;
     DashCI.GoogleCastSender = GoogleCastSender;
 })(DashCI || (DashCI = {}));
 /// <reference path="../app.ts" />
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Core;
     (function (Core) {
-        var MainController = (function () {
-            function MainController($scope, $timeout, $q, $mdDialog, options) {
+        var MainController = /** @class */ (function () {
+            function MainController($scope, $timeout, $q, $mdDialog, options, $rootscope) {
                 var _this = this;
                 this.$scope = $scope;
                 this.$timeout = $timeout;
                 this.$q = $q;
                 this.$mdDialog = $mdDialog;
                 this.options = options;
+                this.$rootscope = $rootscope;
+                this.cycleInterval = null;
                 this.gridWidth = 800;
                 this.gridHeight = 600;
                 this.editable = false;
@@ -397,13 +414,26 @@ var DashCI;
                 };
                 this.updateGridSize = function () {
                     _this.$timeout(function () {
-                        var grid = document.getElementById('grid');
-                        _this.gridWidth = grid.clientWidth;
-                        _this.gridHeight = grid.clientHeight;
+                        if (_this.isGoogleCast) {
+                            if (window.outerHeight) {
+                                _this.gridWidth = window.outerWidth;
+                                _this.gridHeight = window.outerHeight;
+                            }
+                            else {
+                                _this.gridWidth = document.body.clientWidth;
+                                _this.gridHeight = document.body.clientHeight;
+                            }
+                        }
+                        else {
+                            var grid = document.getElementById('grid');
+                            _this.gridWidth = grid.clientWidth;
+                            _this.gridHeight = grid.clientHeight;
+                        }
                     }, 500);
                 };
                 this.defOptions = {
                     columns: 30,
+                    cycle: undefined,
                     rows: 20,
                     tfs: null,
                     gitlab: null,
@@ -416,11 +446,12 @@ var DashCI;
                             widgets: []
                         }]
                 };
-                this.isGoogleCast = this.CheckGoogleCast();
+                this.isGoogleCast = false;
                 this.castStatus = 'cast';
                 this.canCast = false;
                 this.castSender = null;
                 this.castReceiver = null;
+                this.userAgent = null;
                 this.loadData();
                 window.onresize = this.updateGridSize;
                 this.$scope.$on('wg-grid-full', function () {
@@ -436,11 +467,15 @@ var DashCI;
                     _this.currentPage = null;
                     _this.selectedPageId = _this.options.pages[0].id;
                     _this.changePage();
+                    _this.updateGridSize();
                 });
                 this.$scope.$watch(function () { return _this.selectedPageId; }, function () { return _this.changePage(); });
+                this.$scope.$watch(function () { return _this.options.cycle; }, function () { return _this.updateCycle(); });
+                this.$scope.$watch(function () { return _this.editable; }, function () { return _this.updateCycle(); });
                 this.updateGridSize();
                 this.initCastApi();
             }
+            MainController.prototype.$onInit = function () { };
             MainController.prototype.changePage = function () {
                 var _this = this;
                 if (!this.currentPage || this.selectedPageId != this.currentPage.id) {
@@ -449,6 +484,22 @@ var DashCI;
                         _this.currentPage = _this.options.pages.filter(function (item) { return item.id == _this.selectedPageId; })[0];
                     }, 500);
                 }
+            };
+            MainController.prototype.updateCycle = function () {
+                var _this = this;
+                if (this.cycleInterval)
+                    clearInterval(this.cycleInterval);
+                if (this.options.cycle && !this.editable) {
+                    this.cycleInterval = setInterval(function () { return _this.cyclePage(); }, this.options.cycle);
+                }
+            };
+            MainController.prototype.cyclePage = function () {
+                var index = this.options.pages.indexOf(this.currentPage);
+                index += 1;
+                if (index >= this.options.pages.length)
+                    index = 0;
+                this.selectedPageId = this.options.pages[index].id;
+                this.changePage();
             };
             MainController.prototype.addWidgetDialog = function (ev) {
                 var _this = this;
@@ -491,6 +542,14 @@ var DashCI;
                     this.currentPage.widgets.splice(idx, 1);
                 }
             };
+            MainController.prototype.duplicateWidget = function (widget) {
+                var idx = this.currentPage.widgets.indexOf(widget);
+                if (idx > -1) {
+                    var newWidget = angular.copy(widget);
+                    newWidget.position = { left: -1, top: -1, width: 6, height: 4 };
+                    this.currentPage.widgets.push(newWidget);
+                }
+            };
             MainController.prototype.toggleEditable = function () {
                 this.editable = !this.editable;
                 this.gridOptions.showGrid = this.editable;
@@ -507,7 +566,7 @@ var DashCI;
                 window.localStorage['dash-ci-options'] = angular.toJson(this.options);
             };
             MainController.prototype.loadData = function () {
-                var defOptions = angular.copy(this.defOptions);
+                var defOptions = { "columns": 30, "rows": 25, "tfs": null, "gitlab": { "host": "https://gitlab.com", "privateToken": "xcijrZB97fv9xQnCNsJc" }, "github": [], "circleci": [], "custom": [], "pages": [{ "id": "1", "name": "GitLab", "widgets": [{ "type": 5, "position": { "left": 1, "top": 1, "width": 30, "height": 2 }, "id": "3a49", "footer": false, "header": false, "title": "Dashboard Example", "color": "transparent", "align": "center" }, { "type": 7, "position": { "left": 12, "top": 15, "width": 12, "height": 6 }, "id": "da4f", "footer": false, "header": true, "title": "All History", "color": "transparent", "ref": "*", "poolInterval": 30000, "count": 20, "project": 13083 }, { "type": 2, "position": { "left": 1, "top": 3, "width": 11, "height": 6 }, "id": "daa2", "footer": false, "header": false, "title": "Master", "color": "deep-green", "refs": "master", "poolInterval": 10000, "project": 13083 }, { "type": 2, "position": { "left": 1, "top": 9, "width": 11, "height": 6 }, "id": "97d0", "footer": false, "header": false, "title": "Docs", "color": "deep-green", "refs": "docs/*", "poolInterval": 10000, "project": 13083 }, { "type": 3, "position": { "left": 24, "top": 3, "width": 7, "height": 6 }, "id": "a7af", "footer": false, "header": true, "title": "Front End Bugs", "color": "grey", "labels": "frontend,bug", "status": "opened", "poolInterval": 10000, "query_type": "projects", "project": 13083, "greaterThan": { "value": 0, "color": "red" }, "lowerThan": { "value": 1, "color": "green" } }, { "type": 3, "position": { "left": 24, "top": 9, "width": 7, "height": 6 }, "id": "0bda", "footer": false, "header": true, "title": "Back End Bugs", "color": "grey", "labels": "bug,backend", "status": "opened", "poolInterval": 30000, "query_type": "projects", "project": 13083, "greaterThan": { "value": 0, "color": "turkoise" }, "lowerThan": { "value": 1, "color": "green" } }, { "type": 1, "position": { "left": 24, "top": 15, "width": 7, "height": 11 }, "id": "f815", "footer": false, "header": true, "title": "Clock", "color": "green" }, { "type": 5, "position": { "left": 1, "top": 22, "width": 22, "height": 2 }, "id": "353c", "footer": false, "header": false, "title": "This is an example of board using GitLab data", "color": "transparent", "align": "left" }, { "type": 5, "position": { "left": 1, "top": 24, "width": 23, "height": 2 }, "id": "d87e", "footer": false, "header": false, "title": "Use the top toolbar to configure service tokens", "color": "transparent", "align": "left" }, { "type": 7, "position": { "left": 12, "top": 9, "width": 12, "height": 6 }, "id": "4e5e", "footer": false, "header": true, "title": "Docs History", "color": "transparent", "ref": "docs/*", "poolInterval": 30000, "count": 20, "project": 13083 }, { "type": 7, "position": { "left": 12, "top": 3, "width": 12, "height": 6 }, "id": "b713", "footer": false, "header": true, "title": "Master History", "color": "transparent", "ref": "master", "poolInterval": 30000, "count": 20, "project": 13083 }, { "type": 2, "position": { "left": 1, "top": 15, "width": 11, "height": 6 }, "id": "5786", "footer": false, "header": false, "title": "All", "color": "purple", "refs": "*", "poolInterval": 10000, "project": 13083 }] }] };
                 var savedOpts = (angular.fromJson(window.localStorage['dash-ci-options']) || defOptions);
                 angular.extend(this.options, defOptions, savedOpts);
                 angular.forEach(savedOpts.pages, function (item) {
@@ -517,7 +576,7 @@ var DashCI;
             };
             MainController.prototype.initCastApi = function () {
                 var _this = this;
-                if (!this.isGoogleCast) {
+                if (!this.CheckGoogleCast()) {
                     this.castSender = new DashCI.GoogleCastSender();
                     this.$scope.$watch(function () { return _this.castSender.connected; }, function (connected) {
                         _this.castStatus = connected ? 'cast_connected' : 'cast';
@@ -531,6 +590,8 @@ var DashCI;
                     this.castReceiver.receiveOptions = function (options) {
                         var defOptions = angular.copy(_this.defOptions);
                         angular.extend(_this.options, defOptions, options);
+                        _this.$rootscope.$apply();
+                        _this.$rootscope.$broadcast("dashci-refresh");
                     };
                 }
             };
@@ -545,17 +606,29 @@ var DashCI;
                 }
             };
             MainController.prototype.CheckGoogleCast = function () {
-                return (navigator.userAgent.match(/CrKey/i) &&
-                    navigator.userAgent.match(/TV/i));
+                this.userAgent = navigator.userAgent;
+                var crKey = this.userAgent.match(/CrKey/i);
+                var tv = this.userAgent.match(/TV/i);
+                this.isGoogleCast =
+                    (crKey && crKey.length > 0) || (tv && tv.length > 0);
+                return this.isGoogleCast;
             };
+            MainController.prototype.goFullScreen = function () {
+                var el = document.documentElement;
+                var rfs = (el.webkitRequestFullScreen || el.requestFullScreen || el.mozRequestFullScreen);
+                rfs.call(el);
+            };
+            MainController.prototype.isFullScreen = function () {
+                return window.fullScreen ||
+                    (window.innerWidth == screen.width && window.innerHeight == screen.height);
+            };
+            MainController.$inject = ["$scope", "$timeout", "$q", "$mdDialog", "globalOptions", "$rootScope"];
             return MainController;
         }());
-        MainController.$inject = ["$scope", "$timeout", "$q", "$mdDialog", "globalOptions"];
         DashCI.app.controller("MainController", MainController);
     })(Core = DashCI.Core || (DashCI.Core = {}));
 })(DashCI || (DashCI = {}));
 /// <reference path="../app.ts" />
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Models;
@@ -640,6 +713,28 @@ var DashCI;
                 desc: "2 min"
             },
         ]);
+        DashCI.app.constant("longIntervals", [
+            {
+                value: 30000,
+                desc: "30 secs"
+            },
+            {
+                value: 60000,
+                desc: "1 min"
+            },
+            {
+                value: 120000,
+                desc: "2 min"
+            },
+            {
+                value: 300000,
+                desc: "5 min"
+            },
+            {
+                value: 3600000,
+                desc: "1 hr"
+            },
+        ]);
         DashCI.app.constant("buildCounts", [
             {
                 value: 20,
@@ -670,7 +765,6 @@ var DashCI;
         ]);
     })(Models = DashCI.Models || (DashCI.Models = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 /// <reference path="../app.ts" />
 var DashCI;
 (function (DashCI) {
@@ -680,7 +774,6 @@ var DashCI;
     })(Models = DashCI.Models || (DashCI.Models = {}));
 })(DashCI || (DashCI = {}));
 /// <reference path="../app.ts" />
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Models;
@@ -699,6 +792,8 @@ var DashCI;
             WidgetType[WidgetType["tfsRelease"] = 10] = "tfsRelease";
             WidgetType[WidgetType["tfsQueryChart"] = 11] = "tfsQueryChart";
             WidgetType[WidgetType["customCount"] = 12] = "customCount";
+            WidgetType[WidgetType["customPostIt"] = 13] = "customPostIt";
+            WidgetType[WidgetType["tfsPostIt"] = 14] = "tfsPostIt";
         })(WidgetType = Models.WidgetType || (Models.WidgetType = {}));
         var WidgetCategory;
         (function (WidgetCategory) {
@@ -809,17 +904,29 @@ var DashCI;
                 category: WidgetCategory.tfs
             },
             {
+                type: WidgetType.tfsPostIt,
+                directive: "tfs-post-it",
+                title: "TFS - Post It View",
+                desc: "Shows 'PostIt' of the result of a query.",
+                category: WidgetCategory.tfs
+            },
+            {
                 type: WidgetType.customCount,
                 directive: "custom-count",
                 title: "Custom API Count",
                 desc: "Shows the count of the result of a custom REST API.",
                 category: WidgetCategory.custom
             },
+            {
+                type: WidgetType.customPostIt,
+                directive: "custom-post-it",
+                title: "Custom API Post It View",
+                desc: "Shows 'PostIt' of the result of a custom REST API.",
+                category: WidgetCategory.custom
+            },
         ]);
     })(Models = DashCI.Models || (DashCI.Models = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Resources;
@@ -876,24 +983,45 @@ var DashCI;
                         else
                             return data;
                     };
+                    var listParser = function (data, getHeaders, status) {
+                        if (status == 200) {
+                            var count = countParser(data, getHeaders, status);
+                            data = angular.fromJson(data);
+                            var parameter = accounts[0].jsonListToken;
+                            var parsedList = (parameter ? data[parameter] : data);
+                            var ret = {
+                                count: count.count,
+                                list: parsedList
+                            };
+                            return ret;
+                        }
+                        else
+                            return data;
+                    };
                     var host = accounts[0].baseUrl;
                     // Return the resource, include your custom actions
                     return $resource(host, {}, {
                         execute_count: {
                             method: 'GET',
                             isArray: false,
-                            url: host + ":route",
+                            url: host + ":route?:params",
                             headers: headers,
                             cache: false,
                             transformResponse: countParser
+                        },
+                        execute_list: {
+                            method: 'GET',
+                            isArray: false,
+                            url: host + ":route?:params",
+                            headers: headers,
+                            cache: false,
+                            transformResponse: listParser
                         },
                     });
                 }; }]);
         })(Custom = Resources.Custom || (Resources.Custom = {}));
     })(Resources = DashCI.Resources || (DashCI.Resources = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Resources;
@@ -970,8 +1098,6 @@ var DashCI;
         })(Github = Resources.Github || (Resources.Github = {}));
     })(Resources = DashCI.Resources || (DashCI.Resources = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Resources;
@@ -980,7 +1106,7 @@ var DashCI;
         (function (Gitlab) {
             DashCI.app.factory('gitlabResources', ['$resource', 'globalOptions',
                 function ($resource, globalOptions) { return function () {
-                    if (!globalOptions || !globalOptions.gitlab || !globalOptions.gitlab.host)
+                    if (!globalOptions || !globalOptions.gitlab || !globalOptions.gitlab.host || !globalOptions.gitlab.privateToken)
                         return null;
                     var headers = {
                         "PRIVATE-TOKEN": null,
@@ -1026,7 +1152,7 @@ var DashCI;
                         project_list: {
                             method: 'GET',
                             isArray: true,
-                            url: globalOptions.gitlab.host + "/api/v3/projects?order_by=last_activity_at&sort=desc&per_page=100",
+                            url: globalOptions.gitlab.host + "/api/v4/projects?order_by=last_activity_at&sort=desc&per_page=100",
                             headers: headers,
                             transformResponse: transform,
                             cache: true
@@ -1034,7 +1160,7 @@ var DashCI;
                         group_list: {
                             method: 'GET',
                             isArray: true,
-                            url: globalOptions.gitlab.host + "/api/v3/groups?all_available=true&order_by=name&sort=asc&per_page=100",
+                            url: globalOptions.gitlab.host + "/api/v4/groups?all_available=true&order_by=name&sort=asc&per_page=100",
                             headers: headers,
                             transformResponse: transform,
                             cache: true
@@ -1042,7 +1168,7 @@ var DashCI;
                         issue_count: {
                             method: 'GET',
                             isArray: false,
-                            url: globalOptions.gitlab.host + "/api/v3/:scope/:scopeId/issues?labels=:labels&state=:state&per_page=1",
+                            url: globalOptions.gitlab.host + "/api/v4/:scope/:scopeId/issues?labels=:labels&state=:state&per_page=1",
                             headers: headers,
                             cache: false,
                             transformResponse: countParser
@@ -1064,7 +1190,7 @@ var DashCI;
                         commit_count: {
                             method: 'GET',
                             isArray: true,
-                            url: globalOptions.gitlab.host + "/api/v3/projects/:project/repository/commits?ref_name=:ref&since=:since&per_page=1",
+                            url: globalOptions.gitlab.host + "/api/v4/projects/:project/repository/commits?ref_name=:ref&since=:since&per_page=1",
                             cache: false,
                             transformResponse: countParser
                         }
@@ -1073,8 +1199,31 @@ var DashCI;
         })(Gitlab = Resources.Gitlab || (Resources.Gitlab = {}));
     })(Resources = DashCI.Resources || (DashCI.Resources = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
-"use strict";
+/// <reference path="../../models/models.ts" />
+var DashCI;
+(function (DashCI) {
+    var Resources;
+    (function (Resources) {
+        var Tfs;
+        (function (Tfs) {
+            var TfsColorBy;
+            (function (TfsColorBy) {
+                TfsColorBy[TfsColorBy["randomColorByPath"] = 1] = "randomColorByPath";
+                TfsColorBy[TfsColorBy["colorByWorkItemType"] = 2] = "colorByWorkItemType";
+            })(TfsColorBy = Tfs.TfsColorBy || (Tfs.TfsColorBy = {}));
+            DashCI.app.constant("tfsColorBy", [
+                {
+                    value: TfsColorBy.colorByWorkItemType,
+                    desc: "WorkItem Type"
+                },
+                {
+                    value: TfsColorBy.randomColorByPath,
+                    desc: "Random Color By Path"
+                },
+            ]);
+        })(Tfs = Resources.Tfs || (Resources.Tfs = {}));
+    })(Resources = DashCI.Resources || (DashCI.Resources = {}));
+})(DashCI || (DashCI = {}));
 var DashCI;
 (function (DashCI) {
     var Resources;
@@ -1128,6 +1277,14 @@ var DashCI;
                             method: 'GET',
                             isArray: false,
                             url: globalOptions.tfs.host + "/:project/:team/_apis/wit/wiql/:queryId?api-version=2.2",
+                            headers: headers,
+                            cache: false,
+                            withCredentials: withCredentials
+                        },
+                        get_workitems: {
+                            method: 'GET',
+                            isArray: false,
+                            url: globalOptions.tfs.host + "/_apis/wit/WorkItems?ids=:ids&fields=System.Id,System.Links.LinkType,System.WorkItemType,System.Title,System.AssignedTo,System.State,System.IterationPath&api-version=1.0",
                             headers: headers,
                             cache: false,
                             withCredentials: withCredentials
@@ -1193,14 +1350,51 @@ var DashCI;
         })(Tfs = Resources.Tfs || (Resources.Tfs = {}));
     })(Resources = DashCI.Resources || (DashCI.Resources = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
+/// <reference path="../models/widgets.ts" />
+var DashCI;
+(function (DashCI) {
+    var Widgets;
+    (function (Widgets) {
+        var LoaderDirective = /** @class */ (function () {
+            function LoaderDirective($compile, widgets) {
+                var _this = this;
+                this.$compile = $compile;
+                this.widgets = widgets;
+                this.scope = { scope: '=', editable: '=', globalOptions: '=' };
+                this.restrict = "E";
+                this.replace = true;
+                this.link = function ($scope, $element, attrs, ctrl) {
+                    var widgetParam = $scope.scope;
+                    var wscope = $scope.$new();
+                    angular.extend(wscope, {
+                        data: widgetParam
+                    });
+                    var wdesc = _this.widgets.filter(function (item) { return item.type == wscope.data.type; })[0];
+                    var el = _this.$compile("<" + (wdesc.directive || DashCI.Models.WidgetType[wdesc.type]) + ' class="widget {{data.color}}" />')(wscope);
+                    wscope.$element = el;
+                    $element.replaceWith(el);
+                    $scope.$watch(function () { return $scope.editable; }, function () { return wscope.editable = $scope.editable; });
+                    $scope.$watch(function () { return $scope.globalOptions; }, function () { return wscope.globalOptions = $scope.globalOptions; });
+                };
+            }
+            LoaderDirective.create = function () {
+                var directive = function ($compile, widgets) { return new LoaderDirective($compile, widgets); };
+                directive.$inject = ["$compile", "widgets"];
+                return directive;
+            };
+            return LoaderDirective;
+        }());
+        Widgets.LoaderDirective = LoaderDirective;
+        DashCI.app.directive("widgetLoader", LoaderDirective.create());
+    })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
+})(DashCI || (DashCI = {}));
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var Clock;
         (function (Clock) {
-            var ClockDirective = (function () {
+            var ClockDirective = /** @class */ (function () {
                 function ClockDirective() {
                     this.restrict = "E";
                     this.templateUrl = "app/widgets/clock/clock.html";
@@ -1224,14 +1418,13 @@ var DashCI;
         })(Clock = Widgets.Clock || (Widgets.Clock = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var Clock;
         (function (Clock) {
-            var ClockController = (function () {
+            var ClockController = /** @class */ (function () {
                 function ClockController($scope, $interval) {
                     var _this = this;
                     this.$scope = $scope;
@@ -1245,6 +1438,7 @@ var DashCI;
                     this.$scope.$watch(function () { return _this.$scope.$element.height(); }, function (height) { return _this.fontSize(height); });
                     this.init();
                 }
+                ClockController.prototype.$onInit = function () { };
                 ClockController.prototype.init = function () {
                     var _this = this;
                     this.data.title = this.$scope.data.title || "Clock";
@@ -1285,21 +1479,20 @@ var DashCI;
                     this.date = status.day + ' ' + status.month + ' ' + status.year;
                     this.time = status.hours + ':' + status.minutes + ':' + status.seconds;
                 };
+                ClockController.$inject = ["$scope", "$interval"];
                 return ClockController;
             }());
-            ClockController.$inject = ["$scope", "$interval"];
             Clock.ClockController = ClockController;
         })(Clock = Widgets.Clock || (Widgets.Clock = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var CustomCount;
         (function (CustomCount) {
-            var CustomCountConfigController = (function () {
+            var CustomCountConfigController = /** @class */ (function () {
                 function CustomCountConfigController($mdDialog, globalOptions, customResources, colors, intervals, vm) {
                     this.$mdDialog = $mdDialog;
                     this.globalOptions = globalOptions;
@@ -1309,6 +1502,7 @@ var DashCI;
                     this.vm = vm;
                     this.init();
                 }
+                CustomCountConfigController.prototype.$onInit = function () { };
                 CustomCountConfigController.prototype.init = function () {
                     var _this = this;
                     this.labels = [];
@@ -1328,21 +1522,20 @@ var DashCI;
                 CustomCountConfigController.prototype.ok = function () {
                     this.$mdDialog.hide(true);
                 };
+                CustomCountConfigController.$inject = ["$mdDialog", "globalOptions", "customResources", "colors", "intervals", "config"];
                 return CustomCountConfigController;
             }());
-            CustomCountConfigController.$inject = ["$mdDialog", "globalOptions", "customResources", "colors", "intervals", "config"];
             CustomCount.CustomCountConfigController = CustomCountConfigController;
         })(CustomCount = Widgets.CustomCount || (Widgets.CustomCount = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var CustomCount;
         (function (CustomCount) {
-            var CustomCountController = (function () {
+            var CustomCountController = /** @class */ (function () {
                 function CustomCountController($scope, $q, $timeout, $interval, $mdDialog, customResources) {
                     var _this = this;
                     this.$scope = $scope;
@@ -1362,6 +1555,7 @@ var DashCI;
                     this.$scope.$on("$destroy", function () { return _this.finalize(); });
                     this.init();
                 }
+                CustomCountController.prototype.$onInit = function () { };
                 CustomCountController.prototype.finalize = function () {
                     if (this.handle) {
                         this.$timeout.cancel(this.handle);
@@ -1370,7 +1564,8 @@ var DashCI;
                     DashCI.DEBUG && console.log("dispose: " + this.data.id + "-" + this.data.title);
                 };
                 CustomCountController.prototype.init = function () {
-                    this.data.title = this.data.title || "Count";
+                    if (typeof (this.data.title) == "undefined")
+                        this.data.title = this.data.title || "Count";
                     this.data.color = this.data.color || "grey";
                     //default values
                     this.data.poolInterval = this.data.poolInterval || 10000;
@@ -1423,7 +1618,8 @@ var DashCI;
                         return;
                     DashCI.DEBUG && console.log("start custom request: " + this.data.id + "; " + this.data.title + "; " + new Date().toLocaleTimeString("en-us") + "; " + this.data.label);
                     res.execute_count({
-                        route: this.data.route
+                        route: this.data.route,
+                        params: this.data.params
                     }).$promise.then(function (newCount) {
                         //var newCount = Math.round(Math.random() * 100);
                         if (newCount.count != _this.count) {
@@ -1448,21 +1644,20 @@ var DashCI;
                     });
                     this.$timeout(function () { return _this.sizeFont(_this.$scope.$element.height()); }, 500);
                 };
+                CustomCountController.$inject = ["$scope", "$q", "$timeout", "$interval", "$mdDialog", "customResources"];
                 return CustomCountController;
             }());
-            CustomCountController.$inject = ["$scope", "$q", "$timeout", "$interval", "$mdDialog", "customResources"];
             CustomCount.CustomCountController = CustomCountController;
         })(CustomCount = Widgets.CustomCount || (Widgets.CustomCount = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var CustomCount;
         (function (CustomCount) {
-            var CustomCountDirective = (function () {
+            var CustomCountDirective = /** @class */ (function () {
                 function CustomCountDirective() {
                     this.restrict = "E";
                     this.templateUrl = "app/widgets/custom-count/custom-count.html";
@@ -1486,14 +1681,246 @@ var DashCI;
         })(CustomCount = Widgets.CustomCount || (Widgets.CustomCount = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
+var DashCI;
+(function (DashCI) {
+    var Widgets;
+    (function (Widgets) {
+        var CustomPostIt;
+        (function (CustomPostIt) {
+            var CustomPostItConfigController = /** @class */ (function () {
+                function CustomPostItConfigController($mdDialog, globalOptions, customResources, colors, intervals, vm) {
+                    this.$mdDialog = $mdDialog;
+                    this.globalOptions = globalOptions;
+                    this.customResources = customResources;
+                    this.colors = colors;
+                    this.intervals = intervals;
+                    this.vm = vm;
+                    this.init();
+                }
+                CustomPostItConfigController.prototype.$onInit = function () { };
+                CustomPostItConfigController.prototype.init = function () {
+                    var _this = this;
+                    this.labels = [];
+                    angular.forEach(this.globalOptions.custom, function (item) { return _this.labels.push(item.label); });
+                };
+                CustomPostItConfigController.prototype.getAccountBaseUrl = function (label) {
+                    if (!this.globalOptions.custom)
+                        return null;
+                    var accounts = this.globalOptions.custom.filter(function (item) { return item.label == label; });
+                    if (!accounts || accounts.length == 0)
+                        return null;
+                    return accounts[0].baseUrl;
+                };
+                //public cancel() {
+                //    this.$mdDialog.cancel();
+                //}
+                CustomPostItConfigController.prototype.ok = function () {
+                    this.$mdDialog.hide(true);
+                };
+                CustomPostItConfigController.$inject = ["$mdDialog", "globalOptions", "customResources", "colors", "intervals", "config"];
+                return CustomPostItConfigController;
+            }());
+            CustomPostIt.CustomPostItConfigController = CustomPostItConfigController;
+        })(CustomPostIt = Widgets.CustomPostIt || (Widgets.CustomPostIt = {}));
+    })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
+})(DashCI || (DashCI = {}));
+var DashCI;
+(function (DashCI) {
+    var Widgets;
+    (function (Widgets) {
+        var CustomPostIt;
+        (function (CustomPostIt) {
+            var CustomPostItController = /** @class */ (function () {
+                function CustomPostItController($scope, $q, $timeout, $interval, $mdDialog, customResources) {
+                    var _this = this;
+                    this.$scope = $scope;
+                    this.$q = $q;
+                    this.$timeout = $timeout;
+                    this.$interval = $interval;
+                    this.$mdDialog = $mdDialog;
+                    this.customResources = customResources;
+                    this.count = null;
+                    this.list = null;
+                    this.data = this.$scope.data;
+                    this.data.id = Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
+                    this.data.type = DashCI.Models.WidgetType.customPostIt;
+                    this.data.footer = false;
+                    this.data.header = true;
+                    this.$scope.$watch(function () { return _this.$scope.$element.height(); }, function (height) { return _this.sizeFont(height); });
+                    this.$scope.$watch(function () { return _this.data.poolInterval; }, function (value) { return _this.updateInterval(); });
+                    this.$scope.$on("$destroy", function () { return _this.finalize(); });
+                    this.init();
+                }
+                CustomPostItController.prototype.$onInit = function () { };
+                CustomPostItController.prototype.finalize = function () {
+                    if (this.handle) {
+                        this.$timeout.cancel(this.handle);
+                        this.$interval.cancel(this.handle);
+                    }
+                    DashCI.DEBUG && console.log("dispose: " + this.data.id + "-" + this.data.title);
+                };
+                CustomPostItController.prototype.init = function () {
+                    this.data.title = this.data.title || "PostIt";
+                    this.data.color = "transparent";
+                    this.data.postItColor = this.data.postItColor || "amber";
+                    this.data.columns = this.data.columns || 1;
+                    //default values
+                    this.data.poolInterval = this.data.poolInterval || 10000;
+                    this.updateInterval();
+                };
+                CustomPostItController.prototype.sizeFont = function (height) {
+                    //var p = this.$scope.$element.find("p");
+                    //var fontSize = Math.round(height / 1.3) + "px";
+                    //var lineSize = Math.round((height) - 60) + "px";
+                    //p.css('font-size', fontSize);
+                    //p.css('line-height', lineSize);
+                };
+                CustomPostItController.prototype.config = function () {
+                    var _this = this;
+                    this.$mdDialog.show({
+                        controller: CustomPostIt.CustomPostItConfigController,
+                        controllerAs: "ctrl",
+                        templateUrl: 'app/widgets/custom-postit/config.html',
+                        parent: angular.element(document.body),
+                        //targetEvent: ev,
+                        clickOutsideToClose: true,
+                        fullscreen: false,
+                        resolve: {
+                            config: function () {
+                                var deferred = _this.$q.defer();
+                                _this.$timeout(function () { return deferred.resolve(_this.data); }, 1);
+                                return deferred.promise;
+                            }
+                        }
+                    });
+                    //.then((ok) => this.createWidget(type));
+                };
+                CustomPostItController.prototype.updateInterval = function () {
+                    var _this = this;
+                    if (this.handle) {
+                        this.$timeout.cancel(this.handle);
+                        this.$interval.cancel(this.handle);
+                    }
+                    this.handle = this.$timeout(function () {
+                        _this.handle = _this.$interval(function () { return _this.update(); }, _this.data.poolInterval);
+                    }, DashCI.randomNess()); //this should create some randomness to avoid a lot of calls at the same moment.
+                    this.update();
+                };
+                CustomPostItController.prototype.update = function () {
+                    var _this = this;
+                    if (!this.data.label && !this.data.route)
+                        return;
+                    var res = this.customResources(this.data.label);
+                    if (!res)
+                        return;
+                    DashCI.DEBUG && console.log("start custom request: " + this.data.id + "; " + this.data.title + "; " + new Date().toLocaleTimeString("en-us") + "; " + this.data.label);
+                    res.execute_list({
+                        route: this.data.route,
+                        params: this.data.params
+                    }).$promise.then(function (newPostIt) {
+                        //var newPostIt = Math.round(Math.random() * 100);
+                        if (newPostIt.count != _this.count) {
+                            _this.count = newPostIt.count;
+                            var p = _this.$scope.$element.find("p");
+                            p.addClass('changed');
+                            _this.$timeout(function () { return p.removeClass('changed'); }, 1000);
+                        }
+                        _this.list = mx(newPostIt.list)
+                            .select(function (item) {
+                            var title = "";
+                            var resume = "";
+                            var desc = "";
+                            var tokens = (_this.data.headerTokens || "").split(",");
+                            angular.forEach(tokens, function (token) {
+                                var value = item[token];
+                                if (title && value)
+                                    title += " - ";
+                                if (value)
+                                    title += value;
+                            });
+                            tokens = (_this.data.line1Tokens || "").split(",");
+                            angular.forEach(tokens, function (token) {
+                                var value = item[token];
+                                if (resume && value)
+                                    resume += " - ";
+                                if (value)
+                                    resume += value;
+                            });
+                            tokens = (_this.data.line2Tokens || "").split(",");
+                            angular.forEach(tokens, function (token) {
+                                var value = item[token];
+                                if (desc && value)
+                                    desc += " - ";
+                                if (value)
+                                    desc += value;
+                            });
+                            var ret = {
+                                avatarUrl: item[_this.data.avatarToken],
+                                resume: resume,
+                                description: desc,
+                                title: title,
+                                colorClass: _this.data.postItColor
+                            };
+                            return ret;
+                        }).toArray();
+                        DashCI.DEBUG && console.log("end custom request: " + _this.data.id + "; " + _this.data.title + "; " + new Date().toLocaleTimeString("en-us") + "; " + _this.data.label);
+                    })
+                        .catch(function (reason) {
+                        _this.count = null;
+                        console.error(reason);
+                    });
+                    this.$timeout(function () { return _this.sizeFont(_this.$scope.$element.height()); }, 500);
+                };
+                CustomPostItController.$inject = ["$scope", "$q", "$timeout", "$interval", "$mdDialog", "customResources"];
+                return CustomPostItController;
+            }());
+            CustomPostIt.CustomPostItController = CustomPostItController;
+            var PostItListItem = /** @class */ (function () {
+                function PostItListItem() {
+                }
+                return PostItListItem;
+            }());
+            CustomPostIt.PostItListItem = PostItListItem;
+        })(CustomPostIt = Widgets.CustomPostIt || (Widgets.CustomPostIt = {}));
+    })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
+})(DashCI || (DashCI = {}));
+var DashCI;
+(function (DashCI) {
+    var Widgets;
+    (function (Widgets) {
+        var CustomPostIt;
+        (function (CustomPostIt) {
+            var CustomPostItDirective = /** @class */ (function () {
+                function CustomPostItDirective() {
+                    this.restrict = "E";
+                    this.templateUrl = "app/widgets/custom-postit/custom-postit.html";
+                    this.replace = false;
+                    this.controller = CustomPostIt.CustomPostItController;
+                    this.controllerAs = "ctrl";
+                    /* Binding css to directives */
+                    this.css = {
+                        href: "app/widgets/custom-postit/custom-postit.css",
+                        persist: true
+                    };
+                }
+                CustomPostItDirective.create = function () {
+                    var directive = function () { return new CustomPostItDirective(); };
+                    directive.$inject = [];
+                    return directive;
+                };
+                return CustomPostItDirective;
+            }());
+            DashCI.app.directive("customPostIt", CustomPostItDirective.create());
+        })(CustomPostIt = Widgets.CustomPostIt || (Widgets.CustomPostIt = {}));
+    })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
+})(DashCI || (DashCI = {}));
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var GithubIssues;
         (function (GithubIssues) {
-            var GithubIssuesConfigController = (function () {
+            var GithubIssuesConfigController = /** @class */ (function () {
                 function GithubIssuesConfigController($mdDialog, $scope, globalOptions, githubResources, colors, intervals, vm) {
                     var _this = this;
                     this.$mdDialog = $mdDialog;
@@ -1506,6 +1933,7 @@ var DashCI;
                     this.$scope.$watch(function () { return _this.vm.username; }, function () { return _this.listRepositories(); });
                     this.init();
                 }
+                GithubIssuesConfigController.prototype.$onInit = function () { };
                 GithubIssuesConfigController.prototype.init = function () {
                     var _this = this;
                     this.users = [];
@@ -1531,21 +1959,20 @@ var DashCI;
                 GithubIssuesConfigController.prototype.ok = function () {
                     this.$mdDialog.hide(true);
                 };
+                GithubIssuesConfigController.$inject = ["$mdDialog", "$scope", "globalOptions", "githubResources", "colors", "intervals", "config"];
                 return GithubIssuesConfigController;
             }());
-            GithubIssuesConfigController.$inject = ["$mdDialog", "$scope", "globalOptions", "githubResources", "colors", "intervals", "config"];
             GithubIssues.GithubIssuesConfigController = GithubIssuesConfigController;
         })(GithubIssues = Widgets.GithubIssues || (Widgets.GithubIssues = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var GithubIssues;
         (function (GithubIssues) {
-            var GithubIssuesController = (function () {
+            var GithubIssuesController = /** @class */ (function () {
                 function GithubIssuesController($scope, $q, $timeout, $interval, $mdDialog, githubResources) {
                     var _this = this;
                     this.$scope = $scope;
@@ -1565,6 +1992,7 @@ var DashCI;
                     this.$scope.$on("$destroy", function () { return _this.finalize(); });
                     this.init();
                 }
+                GithubIssuesController.prototype.$onInit = function () { };
                 GithubIssuesController.prototype.finalize = function () {
                     if (this.handle) {
                         this.$timeout.cancel(this.handle);
@@ -1656,21 +2084,20 @@ var DashCI;
                     });
                     this.$timeout(function () { return _this.sizeFont(_this.$scope.$element.height()); }, 500);
                 };
+                GithubIssuesController.$inject = ["$scope", "$q", "$timeout", "$interval", "$mdDialog", "githubResources"];
                 return GithubIssuesController;
             }());
-            GithubIssuesController.$inject = ["$scope", "$q", "$timeout", "$interval", "$mdDialog", "githubResources"];
             GithubIssues.GithubIssuesController = GithubIssuesController;
         })(GithubIssues = Widgets.GithubIssues || (Widgets.GithubIssues = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var GithubIssues;
         (function (GithubIssues) {
-            var GithubIssuesDirective = (function () {
+            var GithubIssuesDirective = /** @class */ (function () {
                 function GithubIssuesDirective() {
                     this.restrict = "E";
                     this.templateUrl = "app/widgets/github-issues/issues.html";
@@ -1694,34 +2121,40 @@ var DashCI;
         })(GithubIssues = Widgets.GithubIssues || (Widgets.GithubIssues = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var GitlabIssues;
         (function (GitlabIssues) {
-            var GitlabIssuesConfigController = (function () {
+            var GitlabIssuesConfigController = /** @class */ (function () {
                 function GitlabIssuesConfigController($mdDialog, gitlabResources, colors, intervals, vm) {
                     this.$mdDialog = $mdDialog;
                     this.gitlabResources = gitlabResources;
                     this.colors = colors;
                     this.intervals = intervals;
                     this.vm = vm;
+                    this.initialized = false;
                     this.init();
                 }
+                GitlabIssuesConfigController.prototype.$onInit = function () { };
                 GitlabIssuesConfigController.prototype.init = function () {
                     var _this = this;
                     var res = this.gitlabResources();
-                    if (!res)
+                    if (!res) {
+                        this.projects = null;
+                        this.initialized = true;
                         return;
+                    }
                     res.project_list().$promise
                         .then(function (result) {
                         _this.projects = mx(result).orderBy(function (x) { return x.name_with_namespace; }).toArray();
+                        _this.initialized = true;
                     })
                         .catch(function (reason) {
                         console.error(reason);
                         _this.projects = [];
+                        _this.initialized = true;
                     });
                     res.group_list().$promise
                         .then(function (result) {
@@ -1738,21 +2171,20 @@ var DashCI;
                 GitlabIssuesConfigController.prototype.ok = function () {
                     this.$mdDialog.hide(true);
                 };
+                GitlabIssuesConfigController.$inject = ["$mdDialog", "gitlabResources", "colors", "intervals", "config"];
                 return GitlabIssuesConfigController;
             }());
-            GitlabIssuesConfigController.$inject = ["$mdDialog", "gitlabResources", "colors", "intervals", "config"];
             GitlabIssues.GitlabIssuesConfigController = GitlabIssuesConfigController;
         })(GitlabIssues = Widgets.GitlabIssues || (Widgets.GitlabIssues = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var GitlabIssues;
         (function (GitlabIssues) {
-            var GitlabIssuesController = (function () {
+            var GitlabIssuesController = /** @class */ (function () {
                 function GitlabIssuesController($scope, $q, $timeout, $interval, $mdDialog, gitlabResources) {
                     var _this = this;
                     this.$scope = $scope;
@@ -1771,6 +2203,7 @@ var DashCI;
                     this.$scope.$on("$destroy", function () { return _this.finalize(); });
                     this.init();
                 }
+                GitlabIssuesController.prototype.$onInit = function () { };
                 GitlabIssuesController.prototype.finalize = function () {
                     if (this.handle) {
                         this.$timeout.cancel(this.handle);
@@ -1837,6 +2270,7 @@ var DashCI;
                         scope: this.data.query_type,
                         scopeId: this.data.query_type == 'projects' ? this.data.project : this.data.group,
                         labels: this.data.labels,
+                        milestone: this.data.milestone,
                         state: this.data.status
                     }).$promise.then(function (newCount) {
                         //var newCount = Math.round(Math.random() * 100);
@@ -1862,21 +2296,20 @@ var DashCI;
                     });
                     this.$timeout(function () { return _this.sizeFont(_this.$scope.$element.height()); }, 500);
                 };
+                GitlabIssuesController.$inject = ["$scope", "$q", "$timeout", "$interval", "$mdDialog", "gitlabResources"];
                 return GitlabIssuesController;
             }());
-            GitlabIssuesController.$inject = ["$scope", "$q", "$timeout", "$interval", "$mdDialog", "gitlabResources"];
             GitlabIssues.GitlabIssuesController = GitlabIssuesController;
         })(GitlabIssues = Widgets.GitlabIssues || (Widgets.GitlabIssues = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var GitlabIssues;
         (function (GitlabIssues) {
-            var GitlabIssuesDirective = (function () {
+            var GitlabIssuesDirective = /** @class */ (function () {
                 function GitlabIssuesDirective() {
                     this.restrict = "E";
                     this.templateUrl = "app/widgets/gitlab-issues/issues.html";
@@ -1900,34 +2333,40 @@ var DashCI;
         })(GitlabIssues = Widgets.GitlabIssues || (Widgets.GitlabIssues = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var GitlabPipeline;
         (function (GitlabPipeline) {
-            var GitlabPipelineConfigController = (function () {
+            var GitlabPipelineConfigController = /** @class */ (function () {
                 function GitlabPipelineConfigController($mdDialog, gitlabResources, colors, intervals, vm) {
                     this.$mdDialog = $mdDialog;
                     this.gitlabResources = gitlabResources;
                     this.colors = colors;
                     this.intervals = intervals;
                     this.vm = vm;
+                    this.initialized = false;
                     this.init();
                 }
+                GitlabPipelineConfigController.prototype.$onInit = function () { };
                 GitlabPipelineConfigController.prototype.init = function () {
                     var _this = this;
                     var res = this.gitlabResources();
-                    if (!res)
+                    if (!res) {
+                        this.projects = null;
+                        this.initialized = true;
                         return;
+                    }
                     res.project_list().$promise
                         .then(function (result) {
                         _this.projects = mx(result).orderBy(function (x) { return x.name_with_namespace; }).toArray();
+                        _this.initialized = true;
                     })
                         .catch(function (reason) {
                         console.error(reason);
                         _this.projects = [];
+                        _this.initialized = true;
                     });
                 };
                 //public cancel() {
@@ -1936,21 +2375,20 @@ var DashCI;
                 GitlabPipelineConfigController.prototype.ok = function () {
                     this.$mdDialog.hide(true);
                 };
+                GitlabPipelineConfigController.$inject = ["$mdDialog", "gitlabResources", "colors", "intervals", "config"];
                 return GitlabPipelineConfigController;
             }());
-            GitlabPipelineConfigController.$inject = ["$mdDialog", "gitlabResources", "colors", "intervals", "config"];
             GitlabPipeline.GitlabPipelineConfigController = GitlabPipelineConfigController;
         })(GitlabPipeline = Widgets.GitlabPipeline || (Widgets.GitlabPipeline = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var GitlabPipeline;
         (function (GitlabPipeline) {
-            var GitlabPipelineController = (function () {
+            var GitlabPipelineController = /** @class */ (function () {
                 function GitlabPipelineController($scope, $q, $timeout, $interval, $mdDialog, gitlabResources) {
                     var _this = this;
                     this.$scope = $scope;
@@ -1971,6 +2409,7 @@ var DashCI;
                     this.$scope.$on("$destroy", function () { return _this.finalize(); });
                     this.init();
                 }
+                GitlabPipelineController.prototype.$onInit = function () { };
                 GitlabPipelineController.prototype.finalize = function () {
                     if (this.handle) {
                         this.$timeout.cancel(this.handle);
@@ -2097,21 +2536,20 @@ var DashCI;
                     var _this = this;
                     this.$timeout(function () { return _this.sizeBy(_this.$scope.$element.width(), _this.$scope.$element.height()); }, 500);
                 };
+                GitlabPipelineController.$inject = ["$scope", "$q", "$timeout", "$interval", "$mdDialog", "gitlabResources"];
                 return GitlabPipelineController;
             }());
-            GitlabPipelineController.$inject = ["$scope", "$q", "$timeout", "$interval", "$mdDialog", "gitlabResources"];
             GitlabPipeline.GitlabPipelineController = GitlabPipelineController;
         })(GitlabPipeline = Widgets.GitlabPipeline || (Widgets.GitlabPipeline = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var GitlabPipeline;
         (function (GitlabPipeline) {
-            var GitlabPipelineDirective = (function () {
+            var GitlabPipelineDirective = /** @class */ (function () {
                 function GitlabPipelineDirective() {
                     this.restrict = "E";
                     this.templateUrl = "app/widgets/gitlab-pipeline/pipeline.html";
@@ -2135,34 +2573,40 @@ var DashCI;
         })(GitlabPipeline = Widgets.GitlabPipeline || (Widgets.GitlabPipeline = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var GitlabPipelineGraph;
         (function (GitlabPipelineGraph) {
-            var GitlabPipelineGraphConfigController = (function () {
+            var GitlabPipelineGraphConfigController = /** @class */ (function () {
                 function GitlabPipelineGraphConfigController($mdDialog, gitlabResources, colors, intervals, vm) {
                     this.$mdDialog = $mdDialog;
                     this.gitlabResources = gitlabResources;
                     this.colors = colors;
                     this.intervals = intervals;
                     this.vm = vm;
+                    this.initialized = false;
                     this.init();
                 }
+                GitlabPipelineGraphConfigController.prototype.$onInit = function () { };
                 GitlabPipelineGraphConfigController.prototype.init = function () {
                     var _this = this;
                     var res = this.gitlabResources();
-                    if (!res)
+                    if (!res) {
+                        this.projects = null;
+                        this.initialized = true;
                         return;
+                    }
                     res.project_list().$promise
                         .then(function (result) {
                         _this.projects = mx(result).orderBy(function (x) { return x.name_with_namespace; }).toArray();
+                        _this.initialized = true;
                     })
                         .catch(function (reason) {
                         console.error(reason);
                         _this.projects = [];
+                        _this.initialized = true;
                     });
                 };
                 //public cancel() {
@@ -2171,21 +2615,20 @@ var DashCI;
                 GitlabPipelineGraphConfigController.prototype.ok = function () {
                     this.$mdDialog.hide(true);
                 };
+                GitlabPipelineGraphConfigController.$inject = ["$mdDialog", "gitlabResources", "colors", "intervals", "config"];
                 return GitlabPipelineGraphConfigController;
             }());
-            GitlabPipelineGraphConfigController.$inject = ["$mdDialog", "gitlabResources", "colors", "intervals", "config"];
             GitlabPipelineGraph.GitlabPipelineGraphConfigController = GitlabPipelineGraphConfigController;
         })(GitlabPipelineGraph = Widgets.GitlabPipelineGraph || (Widgets.GitlabPipelineGraph = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var GitlabPipelineGraph;
         (function (GitlabPipelineGraph) {
-            var GitlabPipelineGraphController = (function () {
+            var GitlabPipelineGraphController = /** @class */ (function () {
                 function GitlabPipelineGraphController($scope, $q, $timeout, $interval, $mdDialog, gitlabResources) {
                     var _this = this;
                     this.$scope = $scope;
@@ -2205,6 +2648,7 @@ var DashCI;
                     this.init();
                     this.$timeout(function () { return _this.sizeFont(_this.$scope.$element.height()); }, 500);
                 }
+                GitlabPipelineGraphController.prototype.$onInit = function () { };
                 GitlabPipelineGraphController.prototype.finalize = function () {
                     if (this.handle) {
                         this.$timeout.cancel(this.handle);
@@ -2298,21 +2742,20 @@ var DashCI;
                         console.error(reason);
                     });
                 };
+                GitlabPipelineGraphController.$inject = ["$scope", "$q", "$timeout", "$interval", "$mdDialog", "gitlabResources"];
                 return GitlabPipelineGraphController;
             }());
-            GitlabPipelineGraphController.$inject = ["$scope", "$q", "$timeout", "$interval", "$mdDialog", "gitlabResources"];
             GitlabPipelineGraph.GitlabPipelineGraphController = GitlabPipelineGraphController;
         })(GitlabPipelineGraph = Widgets.GitlabPipelineGraph || (Widgets.GitlabPipelineGraph = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var GitlabPipelineGraph;
         (function (GitlabPipelineGraph) {
-            var GitlabPipelineGraphDirective = (function () {
+            var GitlabPipelineGraphDirective = /** @class */ (function () {
                 function GitlabPipelineGraphDirective() {
                     this.restrict = "E";
                     this.templateUrl = "app/widgets/gitlab-pipeline-graph/pipeline-graph.html";
@@ -2336,14 +2779,13 @@ var DashCI;
         })(GitlabPipelineGraph = Widgets.GitlabPipelineGraph || (Widgets.GitlabPipelineGraph = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var Label;
         (function (Label) {
-            var LabelConfigController = (function () {
+            var LabelConfigController = /** @class */ (function () {
                 function LabelConfigController($mdDialog, colors, aligns, vm) {
                     this.$mdDialog = $mdDialog;
                     this.colors = colors;
@@ -2353,24 +2795,24 @@ var DashCI;
                 }
                 LabelConfigController.prototype.init = function () {
                 };
+                LabelConfigController.prototype.$onInit = function () { };
                 LabelConfigController.prototype.ok = function () {
                     this.$mdDialog.hide(true);
                 };
+                LabelConfigController.$inject = ["$mdDialog", "colors", "aligns", "config"];
                 return LabelConfigController;
             }());
-            LabelConfigController.$inject = ["$mdDialog", "colors", "aligns", "config"];
             Label.LabelConfigController = LabelConfigController;
         })(Label = Widgets.Label || (Widgets.Label = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var Label;
         (function (Label) {
-            var LabelController = (function () {
+            var LabelController = /** @class */ (function () {
                 function LabelController($scope, $timeout, $mdDialog, $q) {
                     var _this = this;
                     this.$scope = $scope;
@@ -2385,6 +2827,7 @@ var DashCI;
                     this.$scope.$watch(function () { return _this.$scope.$element.height(); }, function (height) { return _this.sizeFont(height); });
                     this.init();
                 }
+                LabelController.prototype.$onInit = function () { };
                 LabelController.prototype.init = function () {
                     this.data.title = this.data.title || "Label";
                     this.data.color = this.data.color || "transparent";
@@ -2417,21 +2860,20 @@ var DashCI;
                     div.css('font-size', fontSize);
                     div.css('line-height', lineSize);
                 };
+                LabelController.$inject = ["$scope", "$timeout", "$mdDialog", "$q"];
                 return LabelController;
             }());
-            LabelController.$inject = ["$scope", "$timeout", "$mdDialog", "$q"];
             Label.LabelController = LabelController;
         })(Label = Widgets.Label || (Widgets.Label = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var Label;
         (function (Label) {
-            var LabelDirective = (function () {
+            var LabelDirective = /** @class */ (function () {
                 function LabelDirective() {
                     this.restrict = "E";
                     this.templateUrl = "app/widgets/label/label.html";
@@ -2455,53 +2897,13 @@ var DashCI;
         })(Label = Widgets.Label || (Widgets.Label = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-/// <reference path="../models/widgets.ts" />
-"use strict";
-var DashCI;
-(function (DashCI) {
-    var Widgets;
-    (function (Widgets) {
-        var LoaderDirective = (function () {
-            function LoaderDirective($compile, widgets) {
-                var _this = this;
-                this.$compile = $compile;
-                this.widgets = widgets;
-                this.scope = { scope: '=', editable: '=', globalOptions: '=' };
-                this.restrict = "E";
-                this.replace = true;
-                this.link = function ($scope, $element, attrs, ctrl) {
-                    var widgetParam = $scope.scope;
-                    var wscope = $scope.$new();
-                    angular.extend(wscope, {
-                        data: widgetParam
-                    });
-                    var wdesc = _this.widgets.filter(function (item) { return item.type == wscope.data.type; })[0];
-                    var el = _this.$compile("<" + (wdesc.directive || DashCI.Models.WidgetType[wdesc.type]) + ' class="widget {{data.color}}" />')(wscope);
-                    wscope.$element = el;
-                    $element.replaceWith(el);
-                    $scope.$watch(function () { return $scope.editable; }, function () { return wscope.editable = $scope.editable; });
-                    $scope.$watch(function () { return $scope.globalOptions; }, function () { return wscope.globalOptions = $scope.globalOptions; });
-                };
-            }
-            LoaderDirective.create = function () {
-                var directive = function ($compile, widgets) { return new LoaderDirective($compile, widgets); };
-                directive.$inject = ["$compile", "widgets"];
-                return directive;
-            };
-            return LoaderDirective;
-        }());
-        Widgets.LoaderDirective = LoaderDirective;
-        DashCI.app.directive("widgetLoader", LoaderDirective.create());
-    })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
-})(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var TfsBuild;
         (function (TfsBuild) {
-            var TfsBuildConfigController = (function () {
+            var TfsBuildConfigController = /** @class */ (function () {
                 function TfsBuildConfigController($scope, $mdDialog, tfsResources, colors, intervals, vm) {
                     this.$scope = $scope;
                     this.$mdDialog = $mdDialog;
@@ -2511,6 +2913,7 @@ var DashCI;
                     this.vm = vm;
                     this.init();
                 }
+                TfsBuildConfigController.prototype.$onInit = function () { };
                 TfsBuildConfigController.prototype.init = function () {
                     var _this = this;
                     var res = this.tfsResources();
@@ -2546,21 +2949,20 @@ var DashCI;
                 TfsBuildConfigController.prototype.ok = function () {
                     this.$mdDialog.hide(true);
                 };
+                TfsBuildConfigController.$inject = ["$scope", "$mdDialog", "tfsResources", "colors", "intervals", "config"];
                 return TfsBuildConfigController;
             }());
-            TfsBuildConfigController.$inject = ["$scope", "$mdDialog", "tfsResources", "colors", "intervals", "config"];
             TfsBuild.TfsBuildConfigController = TfsBuildConfigController;
         })(TfsBuild = Widgets.TfsBuild || (Widgets.TfsBuild = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var TfsBuild;
         (function (TfsBuild) {
-            var TfsBuildController = (function () {
+            var TfsBuildController = /** @class */ (function () {
                 function TfsBuildController($scope, $q, $timeout, $interval, $mdDialog, tfsResources) {
                     var _this = this;
                     this.$scope = $scope;
@@ -2583,6 +2985,7 @@ var DashCI;
                     this.init();
                     this.$timeout(function () { return _this.sizeBy(_this.$scope.$element.width(), _this.$scope.$element.height()); }, 500);
                 }
+                TfsBuildController.prototype.$onInit = function () { };
                 TfsBuildController.prototype.finalize = function () {
                     if (this.handle) {
                         this.$timeout.cancel(this.handle);
@@ -2742,21 +3145,20 @@ var DashCI;
                     var _this = this;
                     this.$timeout(function () { return _this.sizeBy(_this.$scope.$element.width(), _this.$scope.$element.height()); }, 500);
                 };
+                TfsBuildController.$inject = ["$scope", "$q", "$timeout", "$interval", "$mdDialog", "tfsResources"];
                 return TfsBuildController;
             }());
-            TfsBuildController.$inject = ["$scope", "$q", "$timeout", "$interval", "$mdDialog", "tfsResources"];
             TfsBuild.TfsBuildController = TfsBuildController;
         })(TfsBuild = Widgets.TfsBuild || (Widgets.TfsBuild = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var TfsBuild;
         (function (TfsBuild) {
-            var TfsBuildDirective = (function () {
+            var TfsBuildDirective = /** @class */ (function () {
                 function TfsBuildDirective() {
                     this.restrict = "E";
                     this.templateUrl = "app/widgets/tfs-build/build.html";
@@ -2780,14 +3182,13 @@ var DashCI;
         })(TfsBuild = Widgets.TfsBuild || (Widgets.TfsBuild = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var TfsBuildGraph;
         (function (TfsBuildGraph) {
-            var TfsBuildGraphDirective = (function () {
+            var TfsBuildGraphDirective = /** @class */ (function () {
                 function TfsBuildGraphDirective() {
                     this.restrict = "E";
                     this.templateUrl = "app/widgets/tfs-build-graph/build-graph.html";
@@ -2811,14 +3212,13 @@ var DashCI;
         })(TfsBuildGraph = Widgets.TfsBuildGraph || (Widgets.TfsBuildGraph = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var TfsBuildGraph;
         (function (TfsBuildGraph) {
-            var TfsBuildGraphConfigController = (function () {
+            var TfsBuildGraphConfigController = /** @class */ (function () {
                 function TfsBuildGraphConfigController($scope, $mdDialog, tfsResources, colors, intervals, buildCounts, vm) {
                     this.$scope = $scope;
                     this.$mdDialog = $mdDialog;
@@ -2829,6 +3229,7 @@ var DashCI;
                     this.vm = vm;
                     this.init();
                 }
+                TfsBuildGraphConfigController.prototype.$onInit = function () { };
                 TfsBuildGraphConfigController.prototype.init = function () {
                     var _this = this;
                     var res = this.tfsResources();
@@ -2864,21 +3265,20 @@ var DashCI;
                 TfsBuildGraphConfigController.prototype.ok = function () {
                     this.$mdDialog.hide(true);
                 };
+                TfsBuildGraphConfigController.$inject = ["$scope", "$mdDialog", "tfsResources", "colors", "intervals", "buildCounts", "config"];
                 return TfsBuildGraphConfigController;
             }());
-            TfsBuildGraphConfigController.$inject = ["$scope", "$mdDialog", "tfsResources", "colors", "intervals", "buildCounts", "config"];
             TfsBuildGraph.TfsBuildGraphConfigController = TfsBuildGraphConfigController;
         })(TfsBuildGraph = Widgets.TfsBuildGraph || (Widgets.TfsBuildGraph = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var TfsBuildGraph;
         (function (TfsBuildGraph) {
-            var TfsBuildGraphController = (function () {
+            var TfsBuildGraphController = /** @class */ (function () {
                 function TfsBuildGraphController($scope, $q, $timeout, $interval, $mdDialog, tfsResources) {
                     var _this = this;
                     this.$scope = $scope;
@@ -2898,6 +3298,7 @@ var DashCI;
                     this.init();
                     this.$timeout(function () { return _this.sizeFont(_this.$scope.$element.height()); }, 500);
                 }
+                TfsBuildGraphController.prototype.$onInit = function () { };
                 TfsBuildGraphController.prototype.finalize = function () {
                     if (this.handle) {
                         this.$timeout.cancel(this.handle);
@@ -3012,21 +3413,317 @@ var DashCI;
                     else
                         doQueryBuild(this.data.build);
                 };
+                TfsBuildGraphController.$inject = ["$scope", "$q", "$timeout", "$interval", "$mdDialog", "tfsResources"];
                 return TfsBuildGraphController;
             }());
-            TfsBuildGraphController.$inject = ["$scope", "$q", "$timeout", "$interval", "$mdDialog", "tfsResources"];
             TfsBuildGraph.TfsBuildGraphController = TfsBuildGraphController;
         })(TfsBuildGraph = Widgets.TfsBuildGraph || (Widgets.TfsBuildGraph = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
+var DashCI;
+(function (DashCI) {
+    var Widgets;
+    (function (Widgets) {
+        var TfsPostIt;
+        (function (TfsPostIt) {
+            var TfsPostItConfigController = /** @class */ (function () {
+                function TfsPostItConfigController($scope, $mdDialog, $q, tfsResources, colors, intervals, vm, tfsColorBy) {
+                    this.$scope = $scope;
+                    this.$mdDialog = $mdDialog;
+                    this.$q = $q;
+                    this.tfsResources = tfsResources;
+                    this.colors = colors;
+                    this.intervals = intervals;
+                    this.vm = vm;
+                    this.tfsColorBy = tfsColorBy;
+                    this.init();
+                }
+                TfsPostItConfigController.prototype.$onInit = function () { };
+                TfsPostItConfigController.prototype.init = function () {
+                    var _this = this;
+                    var res = this.tfsResources();
+                    if (!res)
+                        return;
+                    res.project_list().$promise
+                        .then(function (result) {
+                        _this.projects = mx(result.value).orderBy(function (x) { return x.name; }).toArray();
+                    })
+                        .catch(function (reason) {
+                        console.error(reason);
+                        _this.projects = [];
+                    });
+                    this.$scope.$watch(function () { return _this.vm.project; }, function () {
+                        _this.getTeams();
+                        _this.getQueries();
+                    });
+                };
+                TfsPostItConfigController.prototype.getQueries = function () {
+                    var _this = this;
+                    var res = this.tfsResources();
+                    if (!res || !this.vm.project)
+                        return;
+                    var q1 = res.query_list({ project: this.vm.project, folder: "Shared Queries" }).$promise;
+                    var q2 = res.query_list({ project: this.vm.project, folder: "My Queries" }).$promise;
+                    this.$q.all([q1, q2])
+                        .then(function (result) {
+                        var q = [];
+                        angular.forEach(result[0].children || result[0].value, function (item) { return q.push(item); });
+                        angular.forEach(result[1].children || result[1].value, function (item) { return q.push(item); });
+                        mx(q).forEach(function (x) {
+                            if (x.children)
+                                x.children = mx(x.children).orderBy(function (y) { return y.name; }).toArray();
+                        });
+                        _this.queries = mx(q).orderBy(function (x) { return x.name; }).toArray();
+                    }).catch(function (reason) {
+                        console.error(reason);
+                        _this.queries = [];
+                    });
+                };
+                TfsPostItConfigController.prototype.getTeams = function () {
+                    var _this = this;
+                    var res = this.tfsResources();
+                    if (!res || !this.vm.project)
+                        return;
+                    res.team_list({ project: this.vm.project })
+                        .$promise
+                        .then(function (result) {
+                        _this.teams = mx(result.value).orderBy(function (x) { return x.name; }).toArray();
+                    })
+                        .catch(function (reason) {
+                        console.error(reason);
+                        _this.teams = [];
+                    });
+                    ;
+                };
+                TfsPostItConfigController.prototype.ok = function () {
+                    this.$mdDialog.hide(true);
+                };
+                TfsPostItConfigController.$inject = ["$scope", "$mdDialog", "$q", "tfsResources", "colors", "intervals", "config", "tfsColorBy"];
+                return TfsPostItConfigController;
+            }());
+            TfsPostIt.TfsPostItConfigController = TfsPostItConfigController;
+        })(TfsPostIt = Widgets.TfsPostIt || (Widgets.TfsPostIt = {}));
+    })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
+})(DashCI || (DashCI = {}));
+var DashCI;
+(function (DashCI) {
+    var Widgets;
+    (function (Widgets) {
+        var TfsPostIt;
+        (function (TfsPostIt) {
+            var TfsPostItController = /** @class */ (function () {
+                function TfsPostItController($scope, $q, $timeout, $interval, $mdDialog, tfsResources, colors) {
+                    var _this = this;
+                    this.$scope = $scope;
+                    this.$q = $q;
+                    this.$timeout = $timeout;
+                    this.$interval = $interval;
+                    this.$mdDialog = $mdDialog;
+                    this.tfsResources = tfsResources;
+                    this.colors = colors;
+                    this.count = null;
+                    this.list = null;
+                    this.areaColors = {};
+                    this.workItemColors = {
+                        "Requirement": "blue",
+                        "User Story": "blue",
+                        "Release Item": "orange",
+                        "Release": "deep-green",
+                        "Feature": "purple",
+                        "Epic": "purple",
+                        "Bug": "red",
+                        "Issue": "amber"
+                    };
+                    this.data = this.$scope.data;
+                    this.data.id = Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
+                    this.data.type = DashCI.Models.WidgetType.tfsPostIt;
+                    this.data.footer = false;
+                    this.data.header = true;
+                    this.$scope.$watch(function () { return _this.$scope.$element.height(); }, function (height) { return _this.sizeFont(height); });
+                    this.$scope.$watch(function () { return _this.data.poolInterval; }, function (value) { return _this.updateInterval(); });
+                    this.$scope.$on("$destroy", function () { return _this.finalize(); });
+                    this.init();
+                    this.colors = mx(this.colors).where(function (x) { return x.code != "transparent" && x.code != "semi-transp"; }).toArray();
+                }
+                TfsPostItController.prototype.$onInit = function () { };
+                TfsPostItController.prototype.finalize = function () {
+                    if (this.handle) {
+                        this.$timeout.cancel(this.handle);
+                        this.$interval.cancel(this.handle);
+                    }
+                    DashCI.DEBUG && console.log("dispose: " + this.data.id + "-" + this.data.title);
+                };
+                TfsPostItController.prototype.init = function () {
+                    this.data.title = this.data.title || "PostIt";
+                    this.data.color = "transparent";
+                    this.data.postItColor = this.data.postItColor || "amber";
+                    this.data.columns = this.data.columns || 1;
+                    //default values
+                    this.data.poolInterval = this.data.poolInterval || 10000;
+                    this.updateInterval();
+                };
+                TfsPostItController.prototype.sizeFont = function (height) {
+                    //var p = this.$scope.$element.find("p");
+                    //var fontSize = Math.round(height / 1.3) + "px";
+                    //var lineSize = Math.round((height) - 60) + "px";
+                    //p.css('font-size', fontSize);
+                    //p.css('line-height', lineSize);
+                };
+                TfsPostItController.prototype.config = function () {
+                    var _this = this;
+                    this.$mdDialog.show({
+                        controller: TfsPostIt.TfsPostItConfigController,
+                        controllerAs: "ctrl",
+                        templateUrl: 'app/widgets/tfs-postit/config.html',
+                        parent: angular.element(document.body),
+                        //targetEvent: ev,
+                        clickOutsideToClose: true,
+                        fullscreen: false,
+                        resolve: {
+                            config: function () {
+                                var deferred = _this.$q.defer();
+                                _this.$timeout(function () { return deferred.resolve(_this.data); }, 1);
+                                return deferred.promise;
+                            }
+                        }
+                    });
+                    //.then((ok) => this.createWidget(type));
+                };
+                TfsPostItController.prototype.updateInterval = function () {
+                    var _this = this;
+                    if (this.handle) {
+                        this.$timeout.cancel(this.handle);
+                        this.$interval.cancel(this.handle);
+                    }
+                    this.handle = this.$timeout(function () {
+                        _this.handle = _this.$interval(function () { return _this.update(); }, _this.data.poolInterval);
+                    }, DashCI.randomNess()); //this should create some randomness to avoid a lot of calls at the same moment.
+                    this.update();
+                };
+                TfsPostItController.prototype.update = function () {
+                    var _this = this;
+                    var res = this.tfsResources();
+                    if (!res)
+                        return;
+                    DashCI.DEBUG && console.log("start Tfs request: " + this.data.id + "; " + this.data.title + "; " + new Date().toLocaleTimeString("en-us") + "; ");
+                    res.run_query({
+                        project: this.data.project,
+                        team: this.data.team,
+                        queryId: this.data.queryId
+                    }).$promise.then(function (newPostIt) {
+                        //var newPostIt = Math.round(Math.random() * 100);
+                        var order = mx(newPostIt.workItems).select(function (x) { return x.id; }).toArray();
+                        var ids = order.join(",");
+                        res.get_workitems({
+                            ids: ids
+                        }).$promise.then(function (data) {
+                            if (data.count != _this.count) {
+                                _this.count = data.count;
+                                var p = _this.$scope.$element.find("p");
+                                p.addClass('changed');
+                                _this.$timeout(function () { return p.removeClass('changed'); }, 1000);
+                            }
+                            _this.list = mx(data.value)
+                                .orderBy(function (x) { return order.indexOf(x.id); })
+                                .select(function (item) {
+                                var title = item.fields["System.Title"];
+                                var resume = item.fields["System.IterationPath"];
+                                var desc = item.fields["System.AssignedTo"];
+                                if (desc && desc.indexOf("<") > -1)
+                                    desc = desc.substr(0, desc.indexOf("<")).trim();
+                                if (resume && resume.indexOf("\\") > -1)
+                                    resume = resume.substr(resume.indexOf("\\") + 1);
+                                var color = _this.data.postItColor;
+                                if (_this.data.colorBy && _this.data.colorBy == DashCI.Resources.Tfs.TfsColorBy.randomColorByPath) {
+                                    if (!_this.areaColors[resume] && _this.colors.length > 0) {
+                                        var ix = TfsPostItController.getRandomInt(0, _this.colors.length - 1);
+                                        _this.areaColors[resume] = _this.colors[ix].code;
+                                        _this.colors.splice(ix, 1);
+                                    }
+                                    else if (!_this.areaColors[resume] && _this.colors.length == 0) {
+                                        _this.areaColors[resume] = _this.data.postItColor;
+                                    }
+                                    color = _this.areaColors[resume];
+                                }
+                                else if (_this.data.colorBy && _this.data.colorBy == DashCI.Resources.Tfs.TfsColorBy.colorByWorkItemType) {
+                                    var type = item.fields["System.WorkItemType"];
+                                    if (!_this.workItemColors[type]) {
+                                        _this.workItemColors[type] = _this.data.postItColor;
+                                    }
+                                    color = _this.workItemColors[type];
+                                }
+                                var ret = {
+                                    avatarUrl: null,
+                                    resume: resume,
+                                    description: desc,
+                                    title: title,
+                                    colorClass: color
+                                };
+                                return ret;
+                            }).toArray();
+                            DashCI.DEBUG && console.log("end Tfs request: " + _this.data.id + "; " + _this.data.title + "; " + new Date().toLocaleTimeString("en-us") + "; ");
+                        });
+                    })
+                        .catch(function (reason) {
+                        _this.count = null;
+                        console.error(reason);
+                    });
+                    this.$timeout(function () { return _this.sizeFont(_this.$scope.$element.height()); }, 500);
+                };
+                // Returns a random integer between min (included) and max (included)
+                TfsPostItController.getRandomInt = function (min, max) {
+                    return Math.floor(Math.random() * (max - min + 1)) + min;
+                };
+                TfsPostItController.$inject = ["$scope", "$q", "$timeout", "$interval", "$mdDialog", "tfsResources", "colors"];
+                return TfsPostItController;
+            }());
+            TfsPostIt.TfsPostItController = TfsPostItController;
+            var PostItListItem = /** @class */ (function () {
+                function PostItListItem() {
+                }
+                return PostItListItem;
+            }());
+            TfsPostIt.PostItListItem = PostItListItem;
+        })(TfsPostIt = Widgets.TfsPostIt || (Widgets.TfsPostIt = {}));
+    })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
+})(DashCI || (DashCI = {}));
+var DashCI;
+(function (DashCI) {
+    var Widgets;
+    (function (Widgets) {
+        var TfsPostIt;
+        (function (TfsPostIt) {
+            var TfsPostItDirective = /** @class */ (function () {
+                function TfsPostItDirective() {
+                    this.restrict = "E";
+                    this.templateUrl = "app/widgets/tfs-postit/tfs-postit.html";
+                    this.replace = false;
+                    this.controller = TfsPostIt.TfsPostItController;
+                    this.controllerAs = "ctrl";
+                    /* Binding css to directives */
+                    this.css = {
+                        href: "app/widgets/tfs-postit/tfs-postit.css",
+                        persist: true
+                    };
+                }
+                TfsPostItDirective.create = function () {
+                    var directive = function () { return new TfsPostItDirective(); };
+                    directive.$inject = [];
+                    return directive;
+                };
+                return TfsPostItDirective;
+            }());
+            DashCI.app.directive("tfsPostIt", TfsPostItDirective.create());
+        })(TfsPostIt = Widgets.TfsPostIt || (Widgets.TfsPostIt = {}));
+    })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
+})(DashCI || (DashCI = {}));
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var TfsQueryChart;
         (function (TfsQueryChart) {
-            var TfsQueryChartConfigController = (function () {
+            var TfsQueryChartConfigController = /** @class */ (function () {
                 function TfsQueryChartConfigController($scope, $mdDialog, $q, tfsResources, colors, intervals, vm) {
                     this.$scope = $scope;
                     this.$mdDialog = $mdDialog;
@@ -3056,6 +3753,7 @@ var DashCI;
                     });
                     this.$scope.$watch(function () { return _this.vm.queryCount; }, function () { return _this.setQueryList(); });
                 };
+                TfsQueryChartConfigController.prototype.$onInit = function () { };
                 TfsQueryChartConfigController.prototype.getQueries = function () {
                     var _this = this;
                     var res = this.tfsResources();
@@ -3068,6 +3766,10 @@ var DashCI;
                         var q = [];
                         angular.forEach(result[0].children || result[0].value, function (item) { return q.push(item); });
                         angular.forEach(result[1].children || result[1].value, function (item) { return q.push(item); });
+                        mx(q).forEach(function (x) {
+                            if (x.children)
+                                x.children = mx(x.children).orderBy(function (y) { return y.name; }).toArray();
+                        });
                         _this.queries = mx(q).orderBy(function (x) { return x.name; }).toArray();
                     }).catch(function (reason) {
                         console.error(reason);
@@ -3107,21 +3809,20 @@ var DashCI;
                 TfsQueryChartConfigController.prototype.ok = function () {
                     this.$mdDialog.hide(true);
                 };
+                TfsQueryChartConfigController.$inject = ["$scope", "$mdDialog", "$q", "tfsResources", "colors", "intervals", "config"];
                 return TfsQueryChartConfigController;
             }());
-            TfsQueryChartConfigController.$inject = ["$scope", "$mdDialog", "$q", "tfsResources", "colors", "intervals", "config"];
             TfsQueryChart.TfsQueryChartConfigController = TfsQueryChartConfigController;
         })(TfsQueryChart = Widgets.TfsQueryChart || (Widgets.TfsQueryChart = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var TfsQueryChart;
         (function (TfsQueryChart) {
-            var TfsQueryChartController = (function () {
+            var TfsQueryChartController = /** @class */ (function () {
                 function TfsQueryChartController($scope, $q, $timeout, $interval, $mdDialog, tfsResources) {
                     var _this = this;
                     this.$scope = $scope;
@@ -3147,6 +3848,7 @@ var DashCI;
                     this.$scope.$on("$destroy", function () { return _this.finalize(); });
                     this.init();
                 }
+                TfsQueryChartController.prototype.$onInit = function () { };
                 TfsQueryChartController.prototype.finalize = function () {
                     if (this.handle) {
                         this.$timeout.cancel(this.handle);
@@ -3266,14 +3968,14 @@ var DashCI;
                     var ctx = canvas.getContext("2d");
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                     var total_value = this.total;
-                    var color_index = 0;
+                    //var color_index = 0;
                     var start_angle = 0;
                     for (var i in data) {
                         var val = data[i];
                         var slice_angle = 2 * Math.PI * val / total_value;
                         this.drawPieSlice(ctx, canvas.width / 2, canvas.height / 2, Math.min(canvas.width / 2, canvas.height / 2), start_angle, start_angle + slice_angle, colors[i]);
                         start_angle += slice_angle;
-                        color_index++;
+                        //color_index++;
                     }
                     //drawing a white circle over the chart
                     //to create the doughnut chart
@@ -3347,21 +4049,20 @@ var DashCI;
                     }
                     return null;
                 };
+                TfsQueryChartController.$inject = ["$scope", "$q", "$timeout", "$interval", "$mdDialog", "tfsResources"];
                 return TfsQueryChartController;
             }());
-            TfsQueryChartController.$inject = ["$scope", "$q", "$timeout", "$interval", "$mdDialog", "tfsResources"];
             TfsQueryChart.TfsQueryChartController = TfsQueryChartController;
         })(TfsQueryChart = Widgets.TfsQueryChart || (Widgets.TfsQueryChart = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var TfsQueryChart;
         (function (TfsQueryChart) {
-            var TfsQueryChartDirective = (function () {
+            var TfsQueryChartDirective = /** @class */ (function () {
                 function TfsQueryChartDirective() {
                     this.restrict = "E";
                     this.templateUrl = "app/widgets/tfs-query-chart/tfs-query-chart.html";
@@ -3385,14 +4086,13 @@ var DashCI;
         })(TfsQueryChart = Widgets.TfsQueryChart || (Widgets.TfsQueryChart = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var TfsQueryCount;
         (function (TfsQueryCount) {
-            var TfsQueryCountConfigController = (function () {
+            var TfsQueryCountConfigController = /** @class */ (function () {
                 function TfsQueryCountConfigController($scope, $mdDialog, $q, tfsResources, colors, intervals, vm) {
                     this.$scope = $scope;
                     this.$mdDialog = $mdDialog;
@@ -3418,6 +4118,7 @@ var DashCI;
                     });
                     this.$scope.$watch(function () { return _this.vm.project; }, function () { return _this.getQueries(); });
                 };
+                TfsQueryCountConfigController.prototype.$onInit = function () { };
                 TfsQueryCountConfigController.prototype.getQueries = function () {
                     var _this = this;
                     var res = this.tfsResources();
@@ -3430,6 +4131,10 @@ var DashCI;
                         var q = [];
                         angular.forEach(result[0].children || result[0].value, function (item) { return q.push(item); });
                         angular.forEach(result[1].children || result[1].value, function (item) { return q.push(item); });
+                        mx(q).forEach(function (x) {
+                            if (x.children)
+                                x.children = mx(x.children).orderBy(function (y) { return y.name; }).toArray();
+                        });
                         _this.queries = mx(q).orderBy(function (x) { return x.name; }).toArray();
                     }).catch(function (reason) {
                         console.error(reason);
@@ -3439,21 +4144,20 @@ var DashCI;
                 TfsQueryCountConfigController.prototype.ok = function () {
                     this.$mdDialog.hide(true);
                 };
+                TfsQueryCountConfigController.$inject = ["$scope", "$mdDialog", "$q", "tfsResources", "colors", "intervals", "config"];
                 return TfsQueryCountConfigController;
             }());
-            TfsQueryCountConfigController.$inject = ["$scope", "$mdDialog", "$q", "tfsResources", "colors", "intervals", "config"];
             TfsQueryCount.TfsQueryCountConfigController = TfsQueryCountConfigController;
         })(TfsQueryCount = Widgets.TfsQueryCount || (Widgets.TfsQueryCount = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var TfsQueryCount;
         (function (TfsQueryCount) {
-            var TfsQueryCountController = (function () {
+            var TfsQueryCountController = /** @class */ (function () {
                 function TfsQueryCountController($scope, $q, $timeout, $interval, $mdDialog, tfsResources) {
                     var _this = this;
                     this.$scope = $scope;
@@ -3472,6 +4176,7 @@ var DashCI;
                     this.$scope.$on("$destroy", function () { return _this.finalize(); });
                     this.init();
                 }
+                TfsQueryCountController.prototype.$onInit = function () { };
                 TfsQueryCountController.prototype.finalize = function () {
                     if (this.handle) {
                         this.$timeout.cancel(this.handle);
@@ -3480,7 +4185,8 @@ var DashCI;
                     DashCI.DEBUG && console.log("dispose: " + this.data.id + "-" + this.data.title);
                 };
                 TfsQueryCountController.prototype.init = function () {
-                    this.data.title = this.data.title || "Query";
+                    if (typeof (this.data.title) == "undefined")
+                        this.data.title = this.data.title || "Query";
                     this.data.color = this.data.color || "grey";
                     //default values
                     this.data.queryId = this.data.queryId || "";
@@ -3564,21 +4270,20 @@ var DashCI;
                     });
                     this.$timeout(function () { return _this.sizeFont(_this.$scope.$element.height()); }, 500);
                 };
+                TfsQueryCountController.$inject = ["$scope", "$q", "$timeout", "$interval", "$mdDialog", "tfsResources"];
                 return TfsQueryCountController;
             }());
-            TfsQueryCountController.$inject = ["$scope", "$q", "$timeout", "$interval", "$mdDialog", "tfsResources"];
             TfsQueryCount.TfsQueryCountController = TfsQueryCountController;
         })(TfsQueryCount = Widgets.TfsQueryCount || (Widgets.TfsQueryCount = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var TfsQueryCount;
         (function (TfsQueryCount) {
-            var TfsQueryCountDirective = (function () {
+            var TfsQueryCountDirective = /** @class */ (function () {
                 function TfsQueryCountDirective() {
                     this.restrict = "E";
                     this.templateUrl = "app/widgets/tfs-query-count/tfs-query-count.html";
@@ -3602,14 +4307,13 @@ var DashCI;
         })(TfsQueryCount = Widgets.TfsQueryCount || (Widgets.TfsQueryCount = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var TfsRelease;
         (function (TfsRelease) {
-            var TfsReleaseConfigController = (function () {
+            var TfsReleaseConfigController = /** @class */ (function () {
                 function TfsReleaseConfigController($scope, $mdDialog, tfsResources, colors, intervals, vm) {
                     this.$scope = $scope;
                     this.$mdDialog = $mdDialog;
@@ -3634,6 +4338,7 @@ var DashCI;
                     });
                     this.$scope.$watch(function () { return _this.vm.project; }, function () { return _this.getReleaseDefs(); });
                 };
+                TfsReleaseConfigController.prototype.$onInit = function () { };
                 TfsReleaseConfigController.prototype.getReleaseDefs = function () {
                     var _this = this;
                     var res = this.tfsResources();
@@ -3654,21 +4359,20 @@ var DashCI;
                 TfsReleaseConfigController.prototype.ok = function () {
                     this.$mdDialog.hide(true);
                 };
+                TfsReleaseConfigController.$inject = ["$scope", "$mdDialog", "tfsResources", "colors", "intervals", "config"];
                 return TfsReleaseConfigController;
             }());
-            TfsReleaseConfigController.$inject = ["$scope", "$mdDialog", "tfsResources", "colors", "intervals", "config"];
             TfsRelease.TfsReleaseConfigController = TfsReleaseConfigController;
         })(TfsRelease = Widgets.TfsRelease || (Widgets.TfsRelease = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var TfsRelease;
         (function (TfsRelease) {
-            var TfsReleaseController = (function () {
+            var TfsReleaseController = /** @class */ (function () {
                 function TfsReleaseController($scope, $q, $timeout, $interval, $mdDialog, tfsResources) {
                     var _this = this;
                     this.$scope = $scope;
@@ -3694,6 +4398,7 @@ var DashCI;
                     this.$scope.$on("$destroy", function () { return _this.finalize(); });
                     this.init();
                 }
+                TfsReleaseController.prototype.$onInit = function () { };
                 TfsReleaseController.prototype.finalize = function () {
                     if (this.handle) {
                         this.$timeout.cancel(this.handle);
@@ -3902,21 +4607,20 @@ var DashCI;
                         item.icon = "";
                     }
                 };
+                TfsReleaseController.$inject = ["$scope", "$q", "$timeout", "$interval", "$mdDialog", "tfsResources"];
                 return TfsReleaseController;
             }());
-            TfsReleaseController.$inject = ["$scope", "$q", "$timeout", "$interval", "$mdDialog", "tfsResources"];
             TfsRelease.TfsReleaseController = TfsReleaseController;
         })(TfsRelease = Widgets.TfsRelease || (Widgets.TfsRelease = {}));
     })(Widgets = DashCI.Widgets || (DashCI.Widgets = {}));
 })(DashCI || (DashCI = {}));
-"use strict";
 var DashCI;
 (function (DashCI) {
     var Widgets;
     (function (Widgets) {
         var TfsRelease;
         (function (TfsRelease) {
-            var TfsReleaseDirective = (function () {
+            var TfsReleaseDirective = /** @class */ (function () {
                 function TfsReleaseDirective() {
                     this.restrict = "E";
                     this.templateUrl = "app/widgets/tfs-release/release.html";

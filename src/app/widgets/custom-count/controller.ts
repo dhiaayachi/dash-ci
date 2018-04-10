@@ -2,6 +2,7 @@
     export interface ICustomCountData extends Models.IWidgetData {
         label?: string;
         route?: string;
+        params?: string;
         poolInterval?: number;
         lowerThan?: {
             value: number;
@@ -45,7 +46,7 @@
 
             this.init();
         }
-
+        $onInit() { }
         private handle: ng.IPromise<any>;
         private finalize() {
             if (this.handle) {
@@ -57,7 +58,8 @@
 
 
         private init() {
-            this.data.title = this.data.title || "Count";
+            if (typeof (this.data.title) == "undefined")
+                this.data.title = this.data.title || "Count";
             this.data.color = this.data.color || "grey";
 
             //default values
@@ -116,7 +118,8 @@
 
             DashCI.DEBUG && console.log("start custom request: " + this.data.id + "; " + this.data.title + "; " + new Date().toLocaleTimeString("en-us") + "; " + this.data.label);
             res.execute_count({
-                route: this.data.route
+                route: this.data.route,
+                params: this.data.params
             }).$promise.then((newCount: Resources.Custom.ICount) => {
                 //var newCount = Math.round(Math.random() * 100);
 

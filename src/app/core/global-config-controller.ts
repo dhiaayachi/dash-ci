@@ -3,17 +3,20 @@
 namespace DashCI.Core {
 
     export class GlobalConfigController implements ng.IController {
-        public static $inject = ["$timeout", "$mdDialog", "$scope", "$rootScope", "config"];
+        public static $inject = ["$timeout", "$mdDialog", "$scope", "$rootScope", "config", "longIntervals"];
         constructor(
             private $timeout: ng.ITimeoutService,
             private $mdDialog: ng.material.IDialogService,
             $scope: ng.IScope,
             private $rootscope: ng.IRootScopeService,
-            public vm: Models.IOptions
+            public vm: Models.IOptions,
+            public intervals: Models.IValueDescription[],
         ) { 
             this.pageCount = this.vm.pages.length;
             $scope.$watch(() => this.pageCount, () => this.updatePages());
         }
+
+        $onInit() { }
 
         public ok() {
             this.$mdDialog.hide();

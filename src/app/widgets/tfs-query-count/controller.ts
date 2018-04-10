@@ -45,7 +45,7 @@
 
             this.init();
         }
-
+        $onInit() { }
         private handle: ng.IPromise<any>;
         private finalize() {
             if (this.handle) {
@@ -56,7 +56,8 @@
         }
 
         private init() {
-            this.data.title = this.data.title || "Query";
+            if (typeof (this.data.title) == "undefined")
+                this.data.title = this.data.title || "Query";
             this.data.color = this.data.color || "grey";
 
             //default values

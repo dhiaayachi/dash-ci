@@ -2,7 +2,7 @@
 
     export interface IGitlabResource extends ng.resource.IResourceClass<IGitlabObject> {
         project_list(): IProject[];
-        issue_count(param: { scope: string; scopeId: number; labels: string; state: string }): ICount;
+        issue_count(param: { scope: string; scopeId: number; labels: string; milestone: string; state: string }): ICount;
         latest_pipeline(param: { project: number; ref: string; }): IPipeline[];
         recent_pipelines(param: { project: number; ref: string; count: number }): IPipeline[];
         commit_count(param: { project: number; ref: string; since: string }): ICount;
@@ -13,7 +13,7 @@
         ['$resource', 'globalOptions',
             ($resource: ng.resource.IResourceService, globalOptions: Models.IOptions) => (): IGitlabResource => {
 
-            if (!globalOptions || !globalOptions.gitlab || !globalOptions.gitlab.host)
+            if (!globalOptions || !globalOptions.gitlab || !globalOptions.gitlab.host || !globalOptions.gitlab.privateToken)
                 return null;
 
             var headers = {
@@ -67,7 +67,7 @@
                 project_list: <ng.resource.IActionDescriptor>{
                     method: 'GET',
                     isArray: true,
-                    url: globalOptions.gitlab.host + "/api/v3/projects?order_by=last_activity_at&sort=desc&per_page=100",
+                    url: globalOptions.gitlab.host + "/api/v4/projects?order_by=last_activity_at&sort=desc&per_page=100",
                     headers: headers,
                     transformResponse: transform,
                     cache: true
@@ -76,7 +76,7 @@
                 group_list: <ng.resource.IActionDescriptor>{
                     method: 'GET',
                     isArray: true,
-                    url: globalOptions.gitlab.host + "/api/v3/groups?all_available=true&order_by=name&sort=asc&per_page=100",
+                    url: globalOptions.gitlab.host + "/api/v4/groups?all_available=true&order_by=name&sort=asc&per_page=100",
                     headers: headers,
                     transformResponse: transform,
                     cache: true
@@ -85,7 +85,7 @@
                 issue_count: <ng.resource.IActionDescriptor>{
                     method: 'GET',
                     isArray: false,
-                    url: globalOptions.gitlab.host + "/api/v3/:scope/:scopeId/issues?labels=:labels&state=:state&per_page=1",
+                    url: globalOptions.gitlab.host + "/api/v4/:scope/:scopeId/issues?labels=:labels&state=:state&per_page=1",
                     headers: headers,
                     cache: false,
                     transformResponse: countParser
@@ -110,7 +110,7 @@
                 commit_count: <ng.resource.IActionDescriptor>{
                     method: 'GET',
                     isArray: true,
-                    url: globalOptions.gitlab.host + "/api/v3/projects/:project/repository/commits?ref_name=:ref&since=:since&per_page=1",
+                    url: globalOptions.gitlab.host + "/api/v4/projects/:project/repository/commits?ref_name=:ref&since=:since&per_page=1",
                     cache: false,
                     transformResponse: countParser
                 }
