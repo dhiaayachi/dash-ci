@@ -1,7 +1,7 @@
 sudo: required
 services:
   - docker
-install:
+script:
   - cd src
   - docker login -u="$DockerUser" -p="$DockerPass"
   - docker build -t dhiaayachi/dash-ci .
