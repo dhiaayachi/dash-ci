@@ -11,4 +11,4 @@ install:
   - cd src
   - docker login -u="$DockerUser" -p="$DockerPass"
   - docker build -t dhiaayachi/dash-ci .
-  - docker push docker pull dhiaayachi/dash-ci
+  - docker push dhiaayachi/dash-ci
