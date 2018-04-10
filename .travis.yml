@@ -10,5 +10,5 @@ before_install:
 install:
   - cd src
   - docker login -u="$DockerUser" -p="$DockerPass"
-  - docker build -t docker pull dhiaayachi/dash-ci .
+  - docker build -t dhiaayachi/dash-ci .
   - docker push docker pull dhiaayachi/dash-ci
