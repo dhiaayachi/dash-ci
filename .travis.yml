@@ -1,12 +1,6 @@
 sudo: required
-language: node
-python:
-  - "6"
-
 services:
   - docker
-
-before_install:
 install:
   - cd src
   - docker login -u="$DockerUser" -p="$DockerPass"
