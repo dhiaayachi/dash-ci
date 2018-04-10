@@ -160,9 +160,11 @@
                         case "canceled":
                             this.icon = "remove_circle"; break;
                         case "success":
-                            this.icon = "check"; break;
+                            this.icon = "fa fa-check-circle"; break;
                         case "failed":
                             this.icon = "cancel"; break;
+                        case "manual":
+                            this.icon = "fa fa-check-circle-o"; break;
                         case "default":
                             this.icon = "help"; break;
                     }

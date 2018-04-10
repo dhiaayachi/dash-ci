@@ -10,8 +10,8 @@ var DashCI;
     var Config = (function () {
         function Config() {
         }
-        // suppress iOS' rubber band effect 
-        // c.f.http://stackoverflow.com/a/26853900 
+        // suppress iOS' rubber band effect
+        // c.f.http://stackoverflow.com/a/26853900
         Config.supressIosRubberEffect = function () {
             var firstMove = false;
             window.addEventListener('touchstart', function (e) {
@@ -2071,9 +2071,14 @@ var DashCI;
                                     break;
                                 case "success":
                                     _this.icon = "check";
+                                    _this.status = "success"
                                     break;
                                 case "failed":
                                     _this.icon = "cancel";
+                                    break;
+                                case "manual":
+                                    _this.icon = "check";
+                                    _this.status = "manual"
                                     break;
                                 case "default":
                                     _this.icon = "help";
@@ -3309,7 +3314,7 @@ var DashCI;
                     ctx.lineTo(endX, endY);
                     ctx.stroke();
                 }
-        
+
                 private drawArc(ctx: CanvasRenderingContext2D, centerX: number, centerY: number, radius: number, startAngle: number, endAngle: number) {
                     ctx.beginPath();
                     ctx.arc(centerX, centerY, radius, startAngle, endAngle);

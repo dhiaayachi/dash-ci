@@ -1,5 +1,5 @@
 ﻿
-gitlab-pipeline-graph .histogram 
+gitlab-pipeline-graph .histogram
 {
     box-sizing: border-box;
     width: 100%;
@@ -19,7 +19,7 @@ gitlab-pipeline-graph .histogram .bar
     bottom: 0;
 
     padding-right: 3px;
-    background-clip: content-box; 
+    background-clip: content-box;
 
     background-color: #808080;
 }
@@ -30,12 +30,17 @@ gitlab-pipeline-graph .histogram .bar.success
     background-color: forestgreen;
 }
 
+gitlab-pipeline-graph .histogram .bar.manual
+{
+    background-color: blue;
+}
+
 gitlab-pipeline-graph .histogram .bar.failed
 {
    background-color: maroon;
 }
 
-gitlab-pipeline-graph .unknown 
+gitlab-pipeline-graph .unknown
 {
     width: 100%;
     text-align: center;
@@ -45,14 +50,14 @@ gitlab-pipeline-graph .blink {
   animation: blinker 1s linear infinite;
 }
 
-@-moz-keyframes blinker {  
+@-moz-keyframes blinker {
   50% { opacity: 0; }
 }
 
-@-webkit-keyframes blinker {  
+@-webkit-keyframes blinker {
   50% { opacity: 0; }
 }
 
-@keyframes blinker {  
+@keyframes blinker {
   50% { opacity: 0; }
 }
