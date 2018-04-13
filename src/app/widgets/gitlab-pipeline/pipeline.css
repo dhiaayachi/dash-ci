@@ -55,16 +55,13 @@ gitlab-pipeline .content .avatar i
     background-size: contain;
 }
 
-gitlab-pipeline .blink {
-  animation: blinker 1s linear infinite;
-}
 gitlab-pipeline .error md-icon{
-    color: rgba(255, 0, 0, 0.60);
+    color: maroon
     /*text-shadow: 0px 0px 3px #FFFFFF;*/
 }
 
 gitlab-pipeline .success md-icon{
-    color: green;
+    color: forestgreen;
     /*text-shadow: 0px 0px 3px #FFFFFF;*/
 }
 
@@ -72,6 +69,14 @@ gitlab-pipeline .manual md-icon{
     color: blue;
     /*text-shadow: 0px 0px 3px #FFFFFF;*/
 }
+
+gitlab-pipeline .blink {
+    animation: blinker 1s linear infinite;
+  }
+
+  itlab-pipeline .unknown {
+    color: gray;
+  }
 
 gitlab-pipeline  .align-center .content
 {
