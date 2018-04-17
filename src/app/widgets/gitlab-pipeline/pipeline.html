@@ -4,7 +4,8 @@
 <div ng-class="{'align-center': ctrl.hideDetails}">
     <div class="header">{{data.title}}</div>
     <div class="content" layout="row" flex>
-        <div class="play-status" ng-class="{ 'success': ctrl.status == 'success', 'blink': ctrl.icon == 'play_circle_filled', 'error': ctrl.icon == 'cancel', 'manual': ctrl.status == 'fa fa-check-circle-o', 'flex': ctrl.hideDetails}">
+        {{ ctrl.status }}
+        <div class="play-status" ng-class="{ 'success': ctrl.status == 'success' , 'blink': ctrl.icon == 'play_circle_filled' || ctrl.status == 'manual', 'error': ctrl.icon == 'cancel', 'manual': ctrl.status == 'fa fa-check-circle-o', 'flex': ctrl.hideDetails}">
             <md-icon>{{ctrl.icon}}</md-icon>
         </div>
         <div ng-if="!ctrl.hideDetails" flex>
