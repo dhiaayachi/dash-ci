@@ -2501,19 +2501,23 @@ var DashCI;
                             switch (_this.latest.status) {
                                 case "pending":
                                     _this.icon = "pause_circle_filled";
+                                    _this.status = "pending";
                                     break;
                                 case "running":
                                     _this.icon = "play_circle_filled";
+                                    _this.status = "running";
                                     break;
                                 case "canceled":
                                     _this.icon = "remove_circle";
+                                    _this.status = 'canceled';
                                     break;
                                 case "success":
                                     _this.icon = "check";
-                                    _this.status = "success"
+                                    _this.status = "success";
                                     break;
                                 case "failed":
                                     _this.icon = "cancel";
+                                    _this.status = "failed";
                                     break;
                                 case "manual":
                                     _this.icon = "check";
