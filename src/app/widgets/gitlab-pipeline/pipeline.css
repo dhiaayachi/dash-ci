@@ -72,6 +72,7 @@ gitlab-pipeline .manual md-icon{
 
 gitlab-pipeline .blink {
     animation: blinker 1s linear infinite;
+    color: gray;
   }
 
   itlab-pipeline .unknown {
