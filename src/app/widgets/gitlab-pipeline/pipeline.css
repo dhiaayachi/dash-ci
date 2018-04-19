@@ -60,6 +60,12 @@ gitlab-pipeline .error md-icon{
     /*text-shadow: 0px 0px 3px #FFFFFF;*/
 }
 
+gitlab-pipeline .pending md-icon{
+    color: orange;
+}
+
+
+
 gitlab-pipeline .success md-icon{
     color: forestgreen;
     /*text-shadow: 0px 0px 3px #FFFFFF;*/
@@ -75,7 +81,7 @@ gitlab-pipeline .blink {
     color: gray;
   }
 
-  itlab-pipeline .unknown {
+  gitlab-pipeline .unknown {
     color: gray;
   }
 
